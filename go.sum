@@ -1,0 +1,6 @@
+github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
+github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/ipthomas/tukcnst v1.2.12 h1:1CDtSgcntON5adX0+kDK7FDs6xaworqVS3A1XiefZoU=
+github.com/ipthomas/tukcnst v1.2.12/go.mod h1:ciOdJbw8hryjilsWjN0vhtF3ZbSfEKUd7wfzU0IZ2X8=
+github.com/ipthomas/tukutil v1.2.5 h1:umNgDeI1RuxAMN0r608oVqhzEOhRK+ikmP/ZAjVCp/E=
+github.com/ipthomas/tukutil v1.2.5/go.mod h1:qrhVW8O1dIAeixAeimwJ3qS3z/xpxcPd2YyhD2JHYsw=
