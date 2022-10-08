@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"log"
-	"os"
 
 	"github.com/ipthomas/tukdbint"
 
@@ -93,16 +92,6 @@ type XDW_Int interface {
 	processRequest() error
 }
 
-var (
-	DSUB_BROKER_URL   = ""
-	DSUB_CONSUMER_URL = ""
-)
-
-func init() {
-	DSUB_BROKER_URL = os.Getenv("DSUB_BROKER_URL")
-	DSUB_CONSUMER_URL = os.Getenv("DSUB_CONSUMER_URL")
-}
-
 // Convienance method to obtain initialised WorkflowDefinition struct which will be needed in the your tukxdw.New_Transaction(&XDWTransaction) if i.Action='register'
 func NewWorkflowDefinition(wfdefstring string, wfdefbytes []byte) (WorkflowDefinition, error) {
 	wfdefstruct := WorkflowDefinition{}
@@ -118,25 +107,26 @@ func NewWorkflowDefinition(wfdefstring string, wfdefbytes []byte) (WorkflowDefin
 func New_Transaction(i XDW_Int) error {
 	return i.processRequest()
 }
+
 func (i *XDWTransaction) processRequest() error {
 	switch i.Action {
 	case tukcnst.REGISTER:
-		return i.RegisterWorkflowDefinition()
+		return i.registerWorkflowDefinition()
 	case tukcnst.XDW_CONTENT_CREATOR:
 	case tukcnst.XDW_CONTENT_CONSUMER:
 	case tukcnst.XDW_CONTENT_UPDATER:
 	}
 	return nil
 }
-func (i *XDWTransaction) RegisterWorkflowDefinition() error {
+func (i *XDWTransaction) registerWorkflowDefinition() error {
 	pwyExpressions := make(map[string]string)
-	if err := i.PersistXDWDefinition(); err == nil {
+	if err := i.persistXDWDefinition(); err == nil {
 		log.Println("Parsing XDW Tasks for potential DSUB Broker Subscriptions")
 		for _, task := range i.WorkflowDefinition.Tasks {
 			for _, inp := range task.Input {
 				log.Printf("Checking Input Task %s", inp.Name)
 				if inp.AccessType == tukcnst.XDS_REGISTERED {
-					pwyExpressions[inp.Name] = i.Pathway
+					pwyExpressions[inp.Name] = i.WorkflowDefinition.Ref
 					log.Printf("Task %v %s task input %s included in potential DSUB Broker subscriptions", task.ID, task.Name, inp.Name)
 				} else {
 					log.Printf("Input Task %s does not require a dsub broker subscription", inp.Name)
@@ -145,7 +135,7 @@ func (i *XDWTransaction) RegisterWorkflowDefinition() error {
 			for _, out := range task.Output {
 				log.Printf("Checking Output Task %s", out.Name)
 				if out.AccessType == tukcnst.XDS_REGISTERED {
-					pwyExpressions[out.Name] = i.Pathway
+					pwyExpressions[out.Name] = i.WorkflowDefinition.Ref
 					log.Printf("Task %v %s task output %s included in potential DSUB Broker subscriptions", task.ID, task.Name, out.Name)
 				} else {
 					log.Printf("Output Task %s does not require a dsub broker subscription", out.Name)
@@ -155,9 +145,11 @@ func (i *XDWTransaction) RegisterWorkflowDefinition() error {
 	}
 	log.Printf("Found %v potential DSUB Broker Subscriptions - %s", len(pwyExpressions), pwyExpressions)
 	if len(pwyExpressions) > 0 {
-		event := tukdsub.DSUBEvent{Action: tukcnst.CANCEL, Pathway: i.Pathway}
+		event := tukdsub.DSUBEvent{Action: tukcnst.CANCEL, Pathway: i.WorkflowDefinition.Ref}
 		tukdsub.New_Transaction(&event)
 		event.Action = tukcnst.CREATE
+		event.BrokerURL = i.DSUB_BrokerURL
+		event.ConsumerURL = i.DSUB_ConsumerURL
 		for expression := range pwyExpressions {
 			event.Expressions = append(event.Expressions, expression)
 		}
@@ -165,25 +157,25 @@ func (i *XDWTransaction) RegisterWorkflowDefinition() error {
 	}
 	return nil
 }
-func (i *XDWTransaction) PersistXDWDefinition() error {
-	log.Println("Processing WF Def for Pathway : " + i.Pathway)
-	xdw := tukdbint.XDW{Name: i.Pathway}
+func (i *XDWTransaction) persistXDWDefinition() error {
+	log.Println("Processing WF Def for Pathway : " + i.WorkflowDefinition.Ref)
+	xdw := tukdbint.XDW{Name: i.WorkflowDefinition.Ref}
 	xdws := tukdbint.XDWS{Action: tukcnst.DELETE}
 	xdws.XDW = append(xdws.XDW, xdw)
 	if err := tukdbint.NewDBEvent(&xdws); err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	log.Printf("Deleted Existing XDW Definition for Pathway %s", i.Pathway)
+	log.Printf("Deleted Existing XDW Definition for Pathway %s", i.WorkflowDefinition.Ref)
 
-	xdwBytes, _ := json.Marshal(i.WorkflowDefinition)
-	xdw = tukdbint.XDW{Name: i.Pathway, IsXDSMeta: false, XDW: string(xdwBytes)}
+	xdwBytes, _ := json.Marshal(i)
+	xdw = tukdbint.XDW{Name: i.WorkflowDefinition.Ref, IsXDSMeta: false, XDW: string(xdwBytes)}
 	xdws = tukdbint.XDWS{Action: tukcnst.INSERT}
 	xdws.XDW = append(xdws.XDW, xdw)
 	if err := tukdbint.NewDBEvent(&xdws); err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	log.Printf("Persisted New XDW Definition for Pathway %s", i.Pathway)
+	log.Printf("Persisted New XDW Definition for Pathway %s", i.WorkflowDefinition.Ref)
 	return nil
 }
