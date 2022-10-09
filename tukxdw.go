@@ -84,9 +84,11 @@ type WorkflowDefinition struct {
 type XDWTransaction struct {
 	Action             string
 	Pathway            string
+	NHS_ID             string
 	WorkflowDefinition WorkflowDefinition
 	DSUB_BrokerURL     string
 	DSUB_ConsumerURL   string
+	Response           []byte
 }
 type XDW_Int interface {
 	processRequest() error
@@ -114,13 +116,24 @@ func (i *XDWTransaction) processRequest() error {
 		return i.registerWorkflowDefinition()
 	case tukcnst.XDW_CONTENT_CREATOR:
 	case tukcnst.XDW_CONTENT_CONSUMER:
+		return i.newXDWContentConsumer()
 	case tukcnst.XDW_CONTENT_UPDATER:
 	}
 	return nil
 }
+func (i *XDWTransaction) newXDWContentConsumer() error {
+	var err error
+	wfs := tukdbint.Workflows{Action: tukcnst.SELECT}
+	wf := tukdbint.Workflow{XDW_Key: i.Pathway + i.NHS_ID}
+	wfs.Workflows = append(wfs.Workflows, wf)
+	err = tukdbint.NewDBEvent(&wfs)
+
+	return err
+}
 func (i *XDWTransaction) registerWorkflowDefinition() error {
+	var err error
 	pwyExpressions := make(map[string]string)
-	if err := i.persistXDWDefinition(); err == nil {
+	if err = i.persistXDWDefinition(); err == nil {
 		log.Println("Parsing XDW Tasks for potential DSUB Broker Subscriptions")
 		for _, task := range i.WorkflowDefinition.Tasks {
 			for _, inp := range task.Input {
@@ -153,9 +166,9 @@ func (i *XDWTransaction) registerWorkflowDefinition() error {
 		for expression := range pwyExpressions {
 			event.Expressions = append(event.Expressions, expression)
 		}
-		tukdsub.New_Transaction(&event)
+		err = tukdsub.New_Transaction(&event)
 	}
-	return nil
+	return err
 }
 func (i *XDWTransaction) persistXDWDefinition() error {
 	log.Println("Processing WF Def for Pathway : " + i.WorkflowDefinition.Ref)
