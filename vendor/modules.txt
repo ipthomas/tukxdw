@@ -10,7 +10,7 @@ github.com/ipthomas/tukcnst
 # github.com/ipthomas/tukdbint v1.2.6
 ## explicit; go 1.19
 github.com/ipthomas/tukdbint
-# github.com/ipthomas/tukdsub v1.2.16
+# github.com/ipthomas/tukdsub v1.2.17
 ## explicit; go 1.19
 github.com/ipthomas/tukdsub
 # github.com/ipthomas/tukhttp v1.2.11
