@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"log"
+	"sort"
 
 	"github.com/ipthomas/tukdbint"
 
@@ -205,8 +206,24 @@ type TaskEvent struct {
 	EventType  string `xml:"eventType"`
 	Status     string `xml:"status"`
 }
+
+type DocumentEvents []DocumentEvent
+
 type XDW_Int interface {
 	processRequest() error
+}
+
+func (i *DocumentEvents) SortDocumentEvents() {
+	sort.Sort(i)
+}
+func (e DocumentEvents) Len() int {
+	return len(e)
+}
+func (e DocumentEvents) Less(i, j int) bool {
+	return e[i].EventTime > e[j].EventTime
+}
+func (e DocumentEvents) Swap(i, j int) {
+	e[i], e[j] = e[j], e[i]
 }
 
 // Convienance method to obtain initialised WorkflowDefinition struct which will be needed in the your tukxdw.New_Transaction(&XDWTransaction) if i.Action='register'
