@@ -90,6 +90,121 @@ type XDWTransaction struct {
 	DSUB_ConsumerURL   string
 	Response           []byte
 }
+
+// XDW Workflow Document Structs
+
+type XDWWorkflowDocument struct {
+	XMLName                        xml.Name              `xml:"XDW.WorkflowDocument"`
+	Hl7                            string                `xml:"hl7,attr"`
+	WsHt                           string                `xml:"ws-ht,attr"`
+	Xdw                            string                `xml:"xdw,attr"`
+	Xsi                            string                `xml:"xsi,attr"`
+	SchemaLocation                 string                `xml:"schemaLocation,attr"`
+	ID                             ID                    `xml:"id"`
+	EffectiveTime                  EffectiveTime         `xml:"effectiveTime"`
+	ConfidentialityCode            ConfidentialityCode   `xml:"confidentialityCode"`
+	Patient                        PatientID             `xml:"patient"`
+	Author                         Author                `xml:"author"`
+	WorkflowInstanceId             string                `xml:"workflowInstanceId"`
+	WorkflowDocumentSequenceNumber string                `xml:"workflowDocumentSequenceNumber"`
+	WorkflowStatus                 string                `xml:"workflowStatus"`
+	WorkflowStatusHistory          WorkflowStatusHistory `xml:"workflowStatusHistory"`
+	WorkflowDefinitionReference    string                `xml:"workflowDefinitionReference"`
+	TaskList                       TaskList              `xml:"TaskList"`
+}
+type ConfidentialityCode struct {
+	Code string `xml:"code,attr"`
+}
+type EffectiveTime struct {
+	Value string `xml:"value,attr"`
+}
+type PatientID struct {
+	ID ID `xml:"id"`
+}
+type Author struct {
+	AssignedAuthor AssignedAuthor `xml:"assignedAuthor"`
+}
+type AssignedAuthor struct {
+	ID             ID             `xml:"id"`
+	AssignedPerson AssignedPerson `xml:"assignedPerson"`
+}
+type ID struct {
+	Root                   string `xml:"root,attr"`
+	Extension              string `xml:"extension,attr"`
+	AssigningAuthorityName string `xml:"assigningAuthorityName,attr"`
+}
+type AssignedPerson struct {
+	Name Name `xml:"name"`
+}
+type Name struct {
+	Family string `xml:"family"`
+	Prefix string `xml:"prefix"`
+}
+type WorkflowStatusHistory struct {
+	DocumentEvent []DocumentEvent `xml:"documentEvent"`
+}
+type TaskList struct {
+	XDWTask []XDWTask `xml:"XDWTask"`
+}
+type XDWTask struct {
+	TaskData         TaskData         `xml:"taskData"`
+	TaskEventHistory TaskEventHistory `xml:"taskEventHistory"`
+}
+type TaskData struct {
+	TaskDetails TaskDetails `xml:"taskDetails"`
+	Description string      `xml:"description"`
+	Input       []Input     `xml:"input"`
+	Output      []Output    `xml:"output"`
+}
+type TaskDetails struct {
+	ID                    string `xml:"id"`
+	TaskType              string `xml:"taskType"`
+	Name                  string `xml:"name"`
+	Status                string `xml:"status"`
+	ActualOwner           string `xml:"actualOwner"`
+	CreatedTime           string `xml:"createdTime"`
+	CreatedBy             string `xml:"createdBy"`
+	LastModifiedTime      string `xml:"lastModifiedTime"`
+	RenderingMethodExists string `xml:"renderingMethodExists"`
+}
+type TaskEventHistory struct {
+	TaskEvent []TaskEvent `xml:"taskEvent"`
+}
+type AttachmentInfo struct {
+	Identifier      string `xml:"identifier"`
+	Name            string `xml:"name"`
+	AccessType      string `xml:"accessType"`
+	ContentType     string `xml:"contentType"`
+	ContentCategory string `xml:"contentCategory"`
+	AttachedTime    string `xml:"attachedTime"`
+	AttachedBy      string `xml:"attachedBy"`
+	HomeCommunityId string `xml:"homeCommunityId"`
+}
+type Part struct {
+	Name           string         `xml:"name,attr"`
+	AttachmentInfo AttachmentInfo `xml:"attachmentInfo"`
+}
+type Output struct {
+	Part Part `xml:"part"`
+}
+type Input struct {
+	Part Part `xml:"part"`
+}
+type DocumentEvent struct {
+	EventTime           string `xml:"eventTime"`
+	EventType           string `xml:"eventType"`
+	TaskEventIdentifier string `xml:"taskEventIdentifier"`
+	Author              string `xml:"author"`
+	PreviousStatus      string `xml:"previousStatus"`
+	ActualStatus        string `xml:"actualStatus"`
+}
+type TaskEvent struct {
+	ID         string `xml:"id"`
+	EventTime  string `xml:"eventTime"`
+	Identifier string `xml:"identifier"`
+	EventType  string `xml:"eventType"`
+	Status     string `xml:"status"`
+}
 type XDW_Int interface {
 	processRequest() error
 }

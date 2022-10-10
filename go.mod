@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/ipthomas/tukcnst v1.2.13
 	github.com/ipthomas/tukdbint v1.2.6
-	github.com/ipthomas/tukdsub v1.2.17
+	github.com/ipthomas/tukdsub v1.2.18
 )
 
 require (
@@ -13,5 +13,5 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/ipthomas/tukhttp v1.2.11 // indirect
 	github.com/ipthomas/tukpdq v1.2.29 // indirect
-	github.com/ipthomas/tukutil v1.2.5 // indirect
+	github.com/ipthomas/tukutil v1.2.6 // indirect
 )
