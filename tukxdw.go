@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"log"
-	"sort"
 
 	"github.com/ipthomas/tukdbint"
 
@@ -213,9 +212,6 @@ type XDW_Int interface {
 	processRequest() error
 }
 
-func (i *DocumentEvents) SortDocumentEvents() {
-	sort.Sort(i)
-}
 func (e DocumentEvents) Len() int {
 	return len(e)
 }
