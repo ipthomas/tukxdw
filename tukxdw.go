@@ -309,7 +309,7 @@ func (i *XDWTransaction) persistXDWDefinition() error {
 	}
 	log.Printf("Deleted Existing XDW Definition for Pathway %s", i.WorkflowDefinition.Ref)
 
-	xdwBytes, _ := json.Marshal(i)
+	xdwBytes, _ := json.Marshal(i.WorkflowDefinition)
 	xdw = tukdbint.XDW{Name: i.WorkflowDefinition.Ref, IsXDSMeta: false, XDW: string(xdwBytes)}
 	xdws = tukdbint.XDWS{Action: tukcnst.INSERT}
 	xdws.XDW = append(xdws.XDW, xdw)
