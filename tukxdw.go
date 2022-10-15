@@ -99,6 +99,7 @@ type XDWTransaction struct {
 	XDWDocument      XDWWorkflowDocument
 	XDWVersion       int
 	XDWState         XDWState
+	XDWEvents        tukdbint.Events
 }
 type XDWState struct {
 	Created                 string
@@ -236,6 +237,9 @@ func (e DocumentEvents) Less(i, j int) bool {
 }
 func (e DocumentEvents) Swap(i, j int) {
 	e[i], e[j] = e[j], e[i]
+}
+func (i *XDWTransaction) XDWContentCreator() error {
+	return nil
 }
 func (i *XDWTransaction) NewXDWContentConsumer() error {
 	var err error
