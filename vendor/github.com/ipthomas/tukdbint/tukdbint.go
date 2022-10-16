@@ -39,7 +39,7 @@ type Templates struct {
 	Templates    []Template `json:"templates"`
 }
 type Template struct {
-	Id       string `json:"id"`
+	Id       int    `json:"id"`
 	Name     string `json:"name"`
 	IsXML    bool   `json:"isxml"`
 	Template string `json:"template"`
@@ -59,7 +59,7 @@ type Subscriptions struct {
 	Subscriptions []Subscription `json:"subscriptions"`
 }
 type Event struct {
-	EventId            int64  `json:"eventid"`
+	Id                 int    `json:"id"`
 	Creationtime       string `json:"creationtime"`
 	DocName            string `json:"docname"`
 	ClassCode          string `json:"classcode"`
@@ -288,7 +288,7 @@ func (i *Events) newEvent() error {
 
 		for rows.Next() {
 			ev := Event{}
-			if err := rows.Scan(&ev.EventId, &ev.Creationtime, &ev.DocName, &ev.ClassCode, &ev.ConfCode, &ev.FormatCode, &ev.FacilityCode, &ev.PracticeCode, &ev.Expression, &ev.Authors, &ev.XdsPid, &ev.XdsDocEntryUid, &ev.RepositoryUniqueId, &ev.NhsId, &ev.User, &ev.Org, &ev.Role, &ev.Topic, &ev.Pathway, &ev.Notes, &ev.Version); err != nil {
+			if err := rows.Scan(&ev.Id, &ev.Creationtime, &ev.DocName, &ev.ClassCode, &ev.ConfCode, &ev.FormatCode, &ev.FacilityCode, &ev.PracticeCode, &ev.Expression, &ev.Authors, &ev.XdsPid, &ev.XdsDocEntryUid, &ev.RepositoryUniqueId, &ev.NhsId, &ev.User, &ev.Org, &ev.Role, &ev.Topic, &ev.Pathway, &ev.Notes, &ev.Version); err != nil {
 				switch {
 				case err == sql.ErrNoRows:
 					return nil
