@@ -577,10 +577,10 @@ func (i *XDWTransaction) NewContentCreator() error {
 	docevent.EventType = "New_Workflow"
 	docevent.PreviousStatus = "CREATED"
 	docevent.ActualStatus = "READY"
-	log.Printf("Set Workflow Document Event 'New_Workflow' %s status to ", tevidstr, tukcnst.READY)
+	log.Printf("Set Workflow Document Event %s 'New_Workflow' status to %s", tevidstr, tukcnst.READY)
 	i.XDWDocument.WorkflowStatusHistory.DocumentEvent = append(i.XDWDocument.WorkflowStatusHistory.DocumentEvent, docevent)
-	log.Printf("Created new %s Workflow for Patient ", i.XDWDocument.WorkflowDefinitionReference, i.NHS_ID)
-	i.Response, _ = json.MarshalIndent(i.XDWDocument, "", "  ")
+	log.Printf("Created new %s Workflow for Patient %s", i.XDWDocument.WorkflowDefinitionReference, i.NHS_ID)
+	i.Response, _ = xml.MarshalIndent(i.XDWDocument, "", "  ")
 	i.XDWVersion = 0
 	return nil
 }
@@ -608,7 +608,7 @@ func (i *XDWTransaction) newEventID() int64 {
 		log.Println(err.Error())
 		return 0
 	}
-	log.Printf("Created ODD Event ID :  = %v", evs.LastInsertId)
+	log.Printf("Created Event ID :  = %v", evs.LastInsertId)
 	return evs.LastInsertId
 }
 func getLocalId(mid string) string {
