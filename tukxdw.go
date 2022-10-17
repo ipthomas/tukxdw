@@ -372,7 +372,7 @@ func (i *XDWTransaction) persistXDSMeta() error {
 	return nil
 }
 func (i *XDWTransaction) persistXDWDefinition() error {
-	log.Println("Deleting any WF Def for Pathway : " + i.Pathway)
+	log.Println("Deleting WF Def for Pathway : " + i.Pathway)
 	xdw := tukdbint.XDW{Name: i.Pathway, IsXDSMeta: false}
 	xdws := tukdbint.XDWS{Action: tukcnst.DELETE}
 	xdws.XDW = append(xdws.XDW, xdw)
@@ -517,9 +517,38 @@ func (i *XDWTransaction) setWorkflowState() error {
 	return nil
 }
 func (i *XDWTransaction) NewContentCreator() error {
-	log.Println("Creating New Workflow for " + i.Pathway + i.NHS_ID)
-	i.XDSDocumentMeta = XDSDocumentMeta{}
-	i.XDWDocument = XDWWorkflowDocument{}
+	log.Printf("Creating New Workflow for %s", i.Pathway+i.NHS_ID)
+	log.Printf("Obtaining XDS Meta for Pathway %s", i.Pathway)
+	xdw := tukdbint.XDW{Name: i.Pathway + "_meta", IsXDSMeta: true}
+	xdws := tukdbint.XDWS{Action: tukcnst.SELECT}
+	xdws.XDW = append(xdws.XDW, xdw)
+	if err := tukdbint.NewDBEvent(&xdws); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	if xdws.Count != 1 {
+		return errors.New("no xds meta data found for pathway " + i.Pathway)
+	}
+	log.Printf("Loaded XDS Meta for Pathway %s", i.Pathway)
+	if err := json.Unmarshal([]byte(xdws.XDW[1].XDW), &i.XDSDocumentMeta); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	xdw = tukdbint.XDW{Name: i.Pathway, IsXDSMeta: false}
+	xdws = tukdbint.XDWS{Action: tukcnst.SELECT}
+	xdws.XDW = append(xdws.XDW, xdw)
+	if err := tukdbint.NewDBEvent(&xdws); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	if xdws.Count != 1 {
+		return errors.New("no xdw def found for pathway " + i.Pathway)
+	}
+	log.Printf("Loaded XDW definition found for Pathway %s", i.Pathway)
+	if err := json.Unmarshal([]byte(xdws.XDW[1].XDW), &i.XDWDefinition); err != nil {
+		log.Println(err.Error())
+		return err
+	}
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
