@@ -643,7 +643,7 @@ func (i *XDWTransaction) persistWorkflow() error {
 	var err error
 	wfs := tukdbint.Workflows{Action: tukcnst.INSERT}
 	wf := tukdbint.Workflow{
-		XDW_Key: strings.ToUpper(i.Pathway),
+		XDW_Key: strings.ToUpper(i.Pathway) + i.NHS_ID,
 		XDW_UID: i.XDWDocument.ID.Extension,
 		Version: i.XDWVersion,
 	}
@@ -655,7 +655,7 @@ func (i *XDWTransaction) persistWorkflow() error {
 	if err = tukdbint.NewDBEvent(&wfs); err != nil {
 		log.Println(err.Error())
 	} else {
-		log.Printf("Persisted Workflow Version %v for Pathway %s NHS ID %s", i.Pathway, i.NHS_ID)
+		log.Printf("Persisted Workflow Version %v for Pathway %s NHS ID %s", i.XDWVersion, i.Pathway, i.NHS_ID)
 	}
 	return err
 }
