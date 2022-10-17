@@ -285,17 +285,15 @@ func (i *XDWTransaction) NewXDWContentConsumer() error {
 	}
 	return err
 }
-func (i *XDWTransaction) RegisterWorkflowDefinition(isdef bool) error {
+func (i *XDWTransaction) RegisterWorkflowDefinition(ismeta bool) error {
 	var err error
 	if i.Pathway == "" {
-		return errors.New("pathway is null")
+		return errors.New("pathway is not set")
 	}
-	if isdef {
-		err = json.Unmarshal(i.Request, &i.XDWDefinition)
-		if err != nil {
-			log.Println(err.Error())
-			return err
-		}
+	if i.Request == nil || string(i.Request) == "" {
+		return errors.New("request bytes is not set")
+	}
+	if !ismeta {
 		err = i.registerWorkflowDefinition()
 		if err != nil {
 			log.Println(err.Error())
@@ -312,6 +310,11 @@ func (i *XDWTransaction) RegisterWorkflowDefinition(isdef bool) error {
 }
 func (i *XDWTransaction) registerWorkflowDefinition() error {
 	var err error
+	err = json.Unmarshal(i.Request, &i.XDWDefinition)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
 	pwyExpressions := make(map[string]string)
 	if err = i.persistXDWDefinition(); err == nil {
 		log.Println("Parsing XDW Tasks for potential DSUB Broker Subscriptions")
@@ -392,6 +395,7 @@ func (i *XDWTransaction) persistXDWDefinition() error {
 	log.Printf("Persisted New XDW Definition for Pathway %s", i.Pathway)
 	return nil
 }
+
 func (i *XDWTransaction) SetTaskLastModifiedTime() error {
 	if i.XDWDocument.WorkflowStatus == "" || i.Task_ID < 1 {
 		errstr := "invalid request xdwtransaction must have a valid workflowdocument and workflow task id set"
@@ -632,7 +636,28 @@ func (i *XDWTransaction) NewContentCreator() error {
 	log.Printf("Created new %s Workflow for Patient %s", i.XDWDocument.WorkflowDefinitionReference, i.NHS_ID)
 	i.Response, _ = xml.MarshalIndent(i.XDWDocument, "", "  ")
 	i.XDWVersion = 0
+	i.persistWorkflow()
 	return nil
+}
+func (i *XDWTransaction) persistWorkflow() error {
+	var err error
+	wfs := tukdbint.Workflows{Action: tukcnst.INSERT}
+	wf := tukdbint.Workflow{
+		XDW_Key: strings.ToUpper(i.Pathway),
+		XDW_UID: i.XDWDocument.ID.Extension,
+		Version: i.XDWVersion,
+	}
+	xdwDocBytes, _ := json.Marshal(i.XDWDocument)
+	xdwDefBytes, _ := json.Marshal(i.XDWDefinition)
+	wf.XDW_Doc = string(xdwDocBytes)
+	wf.XDW_Def = string(xdwDefBytes)
+	wfs.Workflows = append(wfs.Workflows, wf)
+	if err = tukdbint.NewDBEvent(&wfs); err != nil {
+		log.Println(err.Error())
+	} else {
+		log.Printf("Persisted Workflow Version %v for Pathway %s NHS ID %s", i.Pathway, i.NHS_ID)
+	}
+	return err
 }
 func (i *XDWTransaction) newEventID() int64 {
 	ev := tukdbint.Event{
