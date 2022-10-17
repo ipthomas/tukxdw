@@ -278,8 +278,14 @@ func (i *XDWTransaction) NewContentCreator() error {
 	wfs := tukdbint.Workflows{Action: tukcnst.DEPRECATE}
 	wf := tukdbint.Workflow{XDW_Key: i.Pathway + i.NHS_ID}
 	wfs.Workflows = append(wfs.Workflows, wf)
-	if err := tukdbint.NewDBEvent(&wfs); err != nil {
-		log.Println(err.Error())
+	if err := tukdbint.NewDBEvent(&wfs); err == nil {
+		log.Printf("Deprecating any current %s Workflow events", i.Pathway+i.NHS_ID)
+		evs := tukdbint.Events{Action: tukcnst.DEPRECATE}
+		ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID}
+		evs.Events = append(evs.Events, ev)
+		if err := tukdbint.NewDBEvent(&evs); err != nil {
+			log.Println(err.Error())
+		}
 	}
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
