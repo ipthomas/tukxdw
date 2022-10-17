@@ -286,28 +286,29 @@ func (i *XDWTransaction) NewXDWContentConsumer() error {
 	return err
 }
 func (i *XDWTransaction) RegisterWorkflowDefinition(isdef bool) error {
+	var err error
+	if i.Pathway == "" {
+		return errors.New("pathway is null")
+	}
 	if isdef {
-		i.XDWDefinition = WorkflowDefinition{}
-		err := json.Unmarshal(i.Request, &i.XDWDefinition)
+		err = json.Unmarshal(i.Request, &i.XDWDefinition)
 		if err != nil {
 			log.Println(err.Error())
 			return err
 		}
-		i.Pathway = i.XDWDefinition.Ref
 		err = i.registerWorkflowDefinition()
 		if err != nil {
 			log.Println(err.Error())
 		}
 		return err
 	} else {
-		i.XDSDocumentMeta = XDSDocumentMeta{}
-		err := json.Unmarshal(i.Request, &i.XDSDocumentMeta)
+		err = i.persistXDSMeta()
 		if err != nil {
 			log.Println(err.Error())
 			return err
 		}
 	}
-	return nil
+	return err
 }
 func (i *XDWTransaction) registerWorkflowDefinition() error {
 	var err error
@@ -349,16 +350,37 @@ func (i *XDWTransaction) registerWorkflowDefinition() error {
 	}
 	return err
 }
-func (i *XDWTransaction) persistXDWDefinition() error {
-	log.Println("Processing WF Def for Pathway : " + i.XDWDefinition.Ref)
-	xdw := tukdbint.XDW{Name: i.XDWDefinition.Ref}
+func (i *XDWTransaction) persistXDSMeta() error {
+	log.Printf("Persisting XDS Meta for Pathway %s", i.Pathway)
+	xdw := tukdbint.XDW{Name: i.Pathway + "_meta", IsXDSMeta: true}
 	xdws := tukdbint.XDWS{Action: tukcnst.DELETE}
 	xdws.XDW = append(xdws.XDW, xdw)
 	if err := tukdbint.NewDBEvent(&xdws); err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	log.Printf("Deleted Existing XDW Definition for Pathway %s", i.XDWDefinition.Ref)
+	log.Printf("Deleted Existing XDS Meta for Pathway %s", i.Pathway)
+
+	xdw = tukdbint.XDW{Name: i.Pathway + "_meta", IsXDSMeta: true, XDW: string(i.Request)}
+	xdws = tukdbint.XDWS{Action: tukcnst.INSERT}
+	xdws.XDW = append(xdws.XDW, xdw)
+	if err := tukdbint.NewDBEvent(&xdws); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	log.Printf("Persisted XDS meta for Pathway %s", i.Pathway)
+	return nil
+}
+func (i *XDWTransaction) persistXDWDefinition() error {
+	log.Println("Deleting any WF Def for Pathway : " + i.Pathway)
+	xdw := tukdbint.XDW{Name: i.Pathway, IsXDSMeta: false}
+	xdws := tukdbint.XDWS{Action: tukcnst.DELETE}
+	xdws.XDW = append(xdws.XDW, xdw)
+	if err := tukdbint.NewDBEvent(&xdws); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	log.Printf("Deleted Existing XDW Definition for Pathway %s", i.Pathway)
 
 	xdwBytes, _ := json.Marshal(i.XDWDefinition)
 	xdw = tukdbint.XDW{Name: i.XDWDefinition.Ref, IsXDSMeta: false, XDW: string(xdwBytes)}
@@ -368,7 +390,7 @@ func (i *XDWTransaction) persistXDWDefinition() error {
 		log.Println(err.Error())
 		return err
 	}
-	log.Printf("Persisted New XDW Definition for Pathway %s", i.XDWDefinition.Ref)
+	log.Printf("Persisted New XDW Definition for Pathway %s", i.Pathway)
 	return nil
 }
 func (i *XDWTransaction) SetTaskLastModifiedTime() error {
