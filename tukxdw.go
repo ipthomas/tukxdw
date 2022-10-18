@@ -640,7 +640,7 @@ func (i *XDWTransaction) persistWorkflow() error {
 		XDW_UID: i.XDWDocument.ID.Extension,
 		Version: i.XDWVersion,
 	}
-	xdwDocBytes, _ := xml.Marshal(i.XDWDocument)
+	xdwDocBytes, _ := xml.MarshalIndent(i.XDWDocument, "", "  ")
 	xdwDefBytes, _ := json.Marshal(i.XDWDefinition)
 	wf.XDW_Doc = string(xdwDocBytes)
 	wf.XDW_Def = string(xdwDefBytes)
