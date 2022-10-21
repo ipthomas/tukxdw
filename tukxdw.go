@@ -20,6 +20,7 @@ type WorkflowDefinition struct {
 	Ref                 string `json:"ref"`
 	Name                string `json:"name"`
 	Confidentialitycode string `json:"confidentialitycode"`
+	StartByTime         string `json:"startbytime"`
 	CompleteByTime      string `json:"completebytime"`
 	CompletionBehavior  []struct {
 		Completion struct {
@@ -27,15 +28,20 @@ type WorkflowDefinition struct {
 		} `json:"completion"`
 	} `json:"completionBehavior"`
 	Tasks []struct {
-		ID                 string `json:"id"`
-		Tasktype           string `json:"tasktype"`
-		Name               string `json:"name"`
-		Description        string `json:"description"`
-		Owner              string `json:"owner"`
-		ExpirationTime     string `json:"expirationtime"`
-		StartByTime        string `json:"startbytime"`
-		CompleteByTime     string `json:"completebytime"`
-		IsSkipable         bool   `json:"isskipable"`
+		ID              string `json:"id"`
+		Tasktype        string `json:"tasktype"`
+		Name            string `json:"name"`
+		Description     string `json:"description"`
+		ActualOwner     string `json:"actualowner"`
+		ExpirationTime  string `json:"expirationtime"`
+		StartByTime     string `json:"startbytime"`
+		CompleteByTime  string `json:"completebytime"`
+		IsSkipable      bool   `json:"isskipable"`
+		PotentialOwners []struct {
+			OrganizationalEntity struct {
+				User string `json:"user"`
+			} `json:"organizationalEntity"`
+		} `json:"potentialOwners"`
 		CompletionBehavior []struct {
 			Completion struct {
 				Condition string `json:"condition"`
@@ -59,18 +65,40 @@ type XDWTransaction struct {
 	Org              string
 	Role             string
 	Pathway          string
+	Expression       string
 	NHS_ID           string
 	Task_ID          int
+	XDWVersion       int
 	DSUB_BrokerURL   string
 	DSUB_ConsumerURL string
 	Request          []byte
 	Response         []byte
+	Dashboard        Dashboard
 	XDWDefinition    WorkflowDefinition
 	XDSDocumentMeta  XDSDocumentMeta
 	XDWDocument      XDWWorkflowDocument
-	XDWVersion       int
 	XDWState         XDWState
+	Workflows        tukdbint.Workflows
 	XDWEvents        tukdbint.Events
+	XDWTaskStates    []XDWTaskState
+}
+type XDWTaskState struct {
+	TaskID              int
+	Created             string
+	CompleteBy          string
+	Status              string
+	IsOverdue           bool
+	LatestTaskEventTime time.Time
+	TaskDuration        time.Duration
+	PrettyTaskDuration  string
+}
+type Dashboard struct {
+	Total        int
+	InProgress   int
+	TargetMet    int
+	TargetMissed int
+	Escalated    int
+	Complete     int
 }
 type XDWState struct {
 	Created                 string
@@ -114,6 +142,28 @@ type XDSDocumentMeta struct {
 	Mimetype              string `json:"mimetype"`
 	Objecttype            string `json:"objecttype"`
 }
+
+//<xsd:simpleType name="tPredefinedStatus"> for WorkflowStatus
+//     <xsd:enumeration value="CREATED" /> Workflow Created
+
+//     <xsd:enumeration value="READY" /> First Task assigned owner
+
+//     <xsd:enumeration value="RESERVED" /> not used
+
+//     <xsd:enumeration value="IN_PROGRESS" /> First Task started (or completed)
+
+//     <xsd:enumeration value="SUSPENDED" /> not used
+
+//     <xsd:enumeration value="COMPLETED" /> Workflow Complete
+
+//     <xsd:enumeration value="FAILED" /> not used
+
+//     <xsd:enumeration value="ERROR" /> not used
+
+//     <xsd:enumeration value="EXITED" /> not used
+
+//     <xsd:enumeration value="OBSOLETE" /> Deprecated Workflows that are not complete
+
 type XDWWorkflowDocument struct {
 	XMLName                        xml.Name              `xml:"XDW.WorkflowDocument"`
 	Hl7                            string                `xml:"hl7,attr"`
@@ -185,6 +235,7 @@ type TaskDetails struct {
 	ActualOwner           string `xml:"actualOwner"`
 	CreatedTime           string `xml:"createdTime"`
 	CreatedBy             string `xml:"createdBy"`
+	ActivationTime        string `xml:"activationtime"`
 	LastModifiedTime      string `xml:"lastModifiedTime"`
 	RenderingMethodExists string `xml:"renderingMethodExists"`
 }
@@ -321,7 +372,7 @@ func (i *XDWTransaction) NewContentCreator() error {
 		task.TaskData.TaskDetails.ID = t.ID
 		task.TaskData.TaskDetails.TaskType = t.Tasktype
 		task.TaskData.TaskDetails.Name = t.Name
-		task.TaskData.TaskDetails.ActualOwner = t.Owner
+		task.TaskData.TaskDetails.ActualOwner = t.ActualOwner
 		task.TaskData.TaskDetails.CreatedBy = i.User + " " + i.Role
 		task.TaskData.TaskDetails.CreatedTime = effectiveTime
 		task.TaskData.TaskDetails.RenderingMethodExists = "false"
@@ -376,12 +427,123 @@ func (i *XDWTransaction) NewContentCreator() error {
 }
 
 // IHE XDW Content Consumer
-func (i *XDWTransaction) NewXDWContentConsumer() error {
-	var err error
-	if err = i.setWorkflowState(); err != nil {
-		log.Println(err.Error())
+func (i *XDWTransaction) XDWContentConsumer() error {
+	if err := i.setXDWS(); err != nil {
+		return err
 	}
-	return err
+	if i.Workflows.Count == 1 {
+		log.Printf("Setting %s Workflow state for Patient %s", i.XDWDocument.WorkflowDefinitionReference, i.XDWDocument.Patient.ID.Extension)
+		i.XDWState.Created = i.XDWDocument.EffectiveTime.Value
+		i.XDWState.Status = i.XDWDocument.WorkflowStatus
+		i.XDWState.IsPublished = i.Workflows.Workflows[1].Published
+		i.setWorkflowLatestEventTime()
+		i.setWorkflowDuration()
+		workflowStartTime := tukutil.GetTimeFromString(i.XDWState.Created)
+		workflowCompleteByDate := workflowStartTime
+		if i.XDWDefinition.CompleteByTime == "" {
+			i.XDWState.CompleteBy = "Non Specified"
+		} else {
+			period := strings.Split(i.XDWDefinition.CompleteByTime, "(")[0]
+			periodDuration := tukutil.GetIntFromString(strings.Split(strings.Split(i.XDWDefinition.CompleteByTime, "(")[1], ")")[0])
+			switch period {
+			case "month":
+				workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, periodDuration, 0, 0, 0)
+			case "day":
+				workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, periodDuration, 0, 0)
+			case "hour":
+				workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, 0, periodDuration, 0)
+			case "min":
+				workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, 0, 0, periodDuration)
+			}
+			if workflowCompleteByDate.Before(workflowStartTime) {
+				i.XDWState.CompleteBy = "Non Specified"
+			} else {
+				i.XDWState.CompleteBy = strings.Split(workflowCompleteByDate.String(), " +")[0]
+			}
+			i.setIsWorkflowOverdueState()
+		}
+
+		for _, deftask := range i.XDWDefinition.Tasks {
+			for _, doctask := range i.XDWDocument.TaskList.XDWTask {
+				if doctask.TaskData.TaskDetails.ID == deftask.ID {
+					tstate := XDWTaskState{}
+					tstate.TaskID = tukutil.GetIntFromString(doctask.TaskData.TaskDetails.ID)
+					tstate.Created = doctask.TaskData.TaskDetails.CreatedTime
+
+					taskStartTime := tukutil.GetTimeFromString(tstate.Created)
+					if deftask.CompleteByTime == "" {
+						tstate.CompleteBy = "Non Specified"
+					} else {
+						period := strings.Split(deftask.CompleteByTime, "(")[0]
+						periodDuration := tukutil.GetIntFromString(strings.Split(strings.Split(deftask.CompleteByTime, "(")[1], ")")[0])
+						switch period {
+						case "month":
+							i.XDWState.CompleteBy = strings.Split(tukutil.GetFutureDate(taskStartTime, 0, periodDuration, 0, 0, 0).String(), " +0")[0]
+						case "day":
+							i.XDWState.CompleteBy = strings.Split(tukutil.GetFutureDate(taskStartTime, 0, 0, periodDuration, 0, 0).String(), " +0")[0]
+						case "hour":
+							i.XDWState.CompleteBy = strings.Split(tukutil.GetFutureDate(taskStartTime, 0, 0, 0, periodDuration, 0).String(), " +0")[0]
+						case "min":
+							i.XDWState.CompleteBy = strings.Split(tukutil.GetFutureDate(taskStartTime, 0, 0, 0, 0, periodDuration).String(), " +0")[0]
+						}
+					}
+				}
+			}
+		}
+
+	}
+	return nil
+}
+
+func (i *XDWTransaction) setXDWS() error {
+	log.Println("Setting XDW States")
+	i.Workflows = tukdbint.Workflows{Action: tukcnst.SELECT}
+	wf := tukdbint.Workflow{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion}
+	i.Workflows.Workflows = append(i.Workflows.Workflows, wf)
+	i.XDWEvents = tukdbint.Events{Action: tukcnst.SELECT}
+	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion}
+	i.XDWEvents.Events = append(i.XDWEvents.Events, ev)
+
+	if err := tukdbint.NewDBEvent(&i.Workflows); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	if err := tukdbint.NewDBEvent(&i.XDWEvents); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+	i.Dashboard.Total = i.Workflows.Count
+	for _, wf := range i.Workflows.Workflows {
+		if len(wf.XDW_Doc) > 0 {
+			if i.XDWVersion == -1 || wf.Version == i.XDWVersion {
+				if err := xml.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
+					log.Println(err.Error())
+					return err
+				}
+				log.Printf("%s Workflow Status is %s", wf.XDW_Key, i.XDWDocument.WorkflowStatus)
+				if err := xml.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
+					log.Println(err.Error())
+					return err
+				}
+				switch i.XDWDocument.WorkflowStatus {
+				case tukcnst.READY:
+					i.Dashboard.InProgress = i.Dashboard.InProgress + 1
+				case tukcnst.IN_PROGRESS:
+					i.Dashboard.InProgress = i.Dashboard.InProgress + 1
+				case tukcnst.COMPLETE:
+					i.Dashboard.Complete = i.Dashboard.Complete + 1
+				}
+				if i.setIsWorkflowOverdueState() {
+					i.Dashboard.TargetMissed = i.Dashboard.TargetMissed + 1
+				} else {
+					if i.XDWDocument.WorkflowStatus == tukcnst.COMPLETE {
+						i.Dashboard.TargetMet = i.Dashboard.TargetMet + 1
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // XDW Admin
@@ -497,20 +659,15 @@ func (i *XDWTransaction) persistXDWDefinition() error {
 	return nil
 }
 
-func (i *XDWTransaction) SetTaskLastModifiedTime() error {
-	if i.XDWDocument.WorkflowStatus == "" || i.Task_ID < 1 {
-		errstr := "invalid request xdwtransaction must have a valid workflowdocument and workflow task id set"
-		log.Println(errstr)
-		return errors.New(errstr)
-	}
+func (i *XDWTransaction) GetTaskLastModifiedTime() string {
 	for _, task := range i.XDWDocument.TaskList.XDWTask {
 		if task.TaskData.TaskDetails.ID == tukutil.GetStringFromInt(i.Task_ID) {
-			i.XDWState.LatestTaskEventTime, _ = time.Parse(time.RFC3339, task.TaskData.TaskDetails.LastModifiedTime)
+			return task.TaskData.TaskDetails.LastModifiedTime
 		}
 	}
-	return nil
+	return ""
 }
-func (i *XDWTransaction) SetWorkflowDuration() {
+func (i *XDWTransaction) setWorkflowDuration() {
 	ws, err := time.Parse(time.RFC3339, i.XDWDocument.EffectiveTime.Value)
 	if err != nil {
 		fmt.Println(err)
@@ -556,80 +713,16 @@ func (i *XDWTransaction) SetWorkflowDuration() {
 		}
 	}
 }
-func (i *XDWTransaction) SetLatestWorkflowEventTime() error {
+func (i *XDWTransaction) setWorkflowLatestEventTime() error {
 	log.Printf("Setting Latest Workflow Event Time for Pathway %s NHS ID %s", i.Pathway, i.NHS_ID)
-	lastevent, err := time.Parse(time.RFC3339, i.XDWDocument.EffectiveTime.Value)
-	if err != nil {
-		log.Println(err.Error())
-	}
+	i.XDWState.LatestWorkflowEventTime = tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value)
 	for _, docevent := range i.XDWDocument.WorkflowStatusHistory.DocumentEvent {
-		etime, err := time.Parse(time.RFC3339, docevent.EventTime)
-		if err != nil {
-			log.Println(err.Error())
-		}
-		if etime.After(lastevent) {
-			log.Printf("Workflow Event Time %s is later than last workflow Event Time %s. Updated Latest Event Time", etime, lastevent)
-			lastevent = etime
+		etime := tukutil.GetTimeFromString(docevent.EventTime)
+		if etime.After(i.XDWState.LatestWorkflowEventTime) {
+			i.XDWState.LatestWorkflowEventTime = etime
 		}
 	}
-	i.XDWState.LatestWorkflowEventTime = lastevent
-	log.Printf("Latest Event Time set to %s ", lastevent.String())
-	return nil
-}
-func (i *XDWTransaction) setWorkflowState() error {
-	log.Printf("Setting Workflow State for Pathway %s NHS ID %s Version %v", i.Pathway, i.NHS_ID, i.XDWVersion)
-	wfs := tukdbint.Workflows{Action: tukcnst.SELECT}
-	wf := tukdbint.Workflow{XDW_Key: i.Pathway + i.NHS_ID, Version: i.XDWVersion}
-	wfs.Workflows = append(wfs.Workflows, wf)
-	if err := tukdbint.NewDBEvent(&wfs); err != nil {
-		log.Println(err.Error())
-		return err
-	}
-	if wfs.Count == 1 {
-		if err := json.Unmarshal([]byte(wfs.Workflows[1].XDW_Def), &i.XDWDefinition); err != nil {
-			log.Println(err.Error())
-			return err
-		}
-		if err := json.Unmarshal([]byte(wfs.Workflows[1].XDW_Doc), &i.XDWDocument); err != nil {
-			log.Println(err.Error())
-			return err
-		}
-		i.XDWState.Created = i.XDWDocument.EffectiveTime.Value
-		i.XDWState.Status = i.XDWDocument.WorkflowStatus
-		i.XDWState.IsPublished = wfs.Workflows[1].Published
-		if i.XDWDefinition.CompleteByTime == "" {
-			i.XDWState.CompleteBy = "Non Specified"
-		}
-		workflowStartTime := tukutil.GetTimeFromString(i.XDWState.Created)
-		days := tukutil.GetIntFromString(strings.Split(strings.Split(i.XDWDefinition.CompleteByTime, "(")[1], ")")[0])
-		i.XDWState.CompleteBy = strings.Split(tukutil.GetFutueDaysDate(workflowStartTime, days).String(), " +0")[0]
-		i.SetLatestWorkflowEventTime()
-		i.SetWorkflowDuration()
-		if i.XDWDefinition.CompleteByTime == "" {
-			i.XDWState.IsOverdue = false
-		} else {
-			completionDate := tukutil.GetFutueDaysDate(workflowStartTime, days)
-			if i.XDWState.Status == tukcnst.COMPLETE {
-				i.XDWState.IsOverdue = i.XDWState.LatestWorkflowEventTime.After(completionDate)
-			} else {
-				i.XDWState.IsOverdue = time.Now().After(completionDate)
-			}
-		}
-		i.XDWEvents.Action = tukcnst.SELECT
-		evs := tukdbint.Events{Action: tukcnst.SELECT}
-		ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: tukutil.GetStringFromInt(i.XDWVersion)}
-		evs.Events = append(evs.Events, ev)
-		tukdbint.NewDBEvent(&evs)
-		for _, e := range evs.Events {
-			if e.Id != 0 {
-				i.XDWEvents.Events = append(i.XDWEvents.Events, e)
-				i.XDWEvents.Count = i.XDWEvents.Count + 1
-				i.XDWEvents.LastInsertId = int64(e.Id)
-			}
-		}
-	} else {
-		log.Println("No Workflow Found")
-	}
+	log.Printf("Latest Event Time set to %s ", i.XDWState.LatestWorkflowEventTime.String())
 	return nil
 }
 func (i *XDWTransaction) persistWorkflow() error {
@@ -672,7 +765,7 @@ func (i *XDWTransaction) newEventID() int64 {
 		Topic:              tukcnst.DSUB_TOPIC_TYPE_CODE,
 		Pathway:            i.Pathway,
 		Notes:              string(i.Request),
-		Version:            "0",
+		Version:            0,
 		BrokerRef:          "NA",
 	}
 	evs := tukdbint.Events{Action: tukcnst.INSERT}
@@ -709,4 +802,22 @@ func getMappedId(lid string) string {
 		return idmaps.LidMap[1].Mid
 	}
 	return lid
+}
+func (i *XDWTransaction) setIsWorkflowOverdueState() bool {
+	if i.XDWDefinition.CompleteByTime != "" {
+		completionDate := i.getWorkflowCompleteByDate()
+		if time.Now().After(completionDate) {
+			if i.XDWDocument.WorkflowStatus == tukcnst.COMPLETE {
+				i.setWorkflowLatestEventTime()
+				return i.XDWState.LatestWorkflowEventTime.After(completionDate)
+			}
+		}
+	}
+	return false
+}
+func (i *XDWTransaction) getWorkflowCompleteByDate() time.Time {
+	workflowStartTime := tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value)
+	days := tukutil.GetIntFromString(strings.Split(strings.Split(i.XDWDefinition.CompleteByTime, "(")[1], ")")[0])
+	completionDate := tukutil.GetFutueDaysDate(workflowStartTime, days)
+	return completionDate
 }
