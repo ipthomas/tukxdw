@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 )
 
 var DebugMode = true
+var Regional_OID = os.Getenv(tukcnst.ENV_REG_OID)
 
 type Interface interface {
 	execute() error
@@ -340,7 +342,7 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 							log.Println("Matched workflow document task " + task.TaskData.TaskDetails.ID + " Input Part : " + input.Part.Name + " with Event Expression : " + event.Expression + " Current Status : " + task.TaskData.TaskDetails.Status)
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.AttachedTime = event.Creationtime
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.AttachedBy = event.User + " " + event.Org + " " + event.Role
-							wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.HomeCommunityId = tukdbint.GetIDMapsLocalId(tukcnst.XDSDOMAIN)
+							wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.HomeCommunityId = Regional_OID
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.LastModifiedTime = event.Creationtime
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.ActualOwner = event.User + " " + event.Org + " " + event.Role
@@ -351,7 +353,7 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 							if task.TaskData.Input[inpkey].Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
 								wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.Identifier = event.XdsDocEntryUid
 							} else {
-								wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.Identifier = "/eventservice/event?act=events&id=" + tukutil.GetStringFromInt(int(event.Id))
+								wfdoc.TaskList.XDWTask[taskkey].TaskData.Input[inpkey].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(event.Id))
 							}
 							nte := TaskEvent{
 								ID:         tukutil.GetStringFromInt(int(event.Id)),
@@ -378,7 +380,7 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 							log.Println("Matched workflow document task " + task.TaskData.TaskDetails.ID + " Output Part : " + output.Part.Name + " with Event Expression : " + event.Expression + " Current Status : " + task.TaskData.TaskDetails.Status)
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.AttachedTime = event.Creationtime
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.AttachedBy = event.User + " " + event.Org + " " + event.Role
-							wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.HomeCommunityId = tukdbint.GetIDMapsLocalId(tukcnst.XDSDOMAIN)
+							wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.HomeCommunityId = Regional_OID
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.LastModifiedTime = event.Creationtime
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
 							wfdoc.TaskList.XDWTask[taskkey].TaskData.TaskDetails.ActualOwner = event.User + " " + event.Org + " " + event.Role
@@ -389,7 +391,7 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 							if task.TaskData.Output[outpkey].Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
 								wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.Identifier = event.XdsDocEntryUid
 							} else {
-								wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.Identifier = "/eventservice/event?act=events&id=" + tukutil.GetStringFromInt(int(event.Id))
+								wfdoc.TaskList.XDWTask[taskkey].TaskData.Output[outpkey].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(event.Id))
 							}
 							nte := TaskEvent{
 								ID:         tukutil.GetStringFromInt(int(event.Id)),
@@ -558,7 +560,7 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 						log.Printf("Updating XDW with Event ID %v for Task ID %s", ev.Id, wfdoctask.TaskData.TaskDetails.ID)
 						i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedTime = ev.Creationtime
 						i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedBy = ev.User + " " + ev.Org + " " + ev.Role
-						i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.HomeCommunityId = tukdbint.GetIDMapsLocalId(tukcnst.XDSDOMAIN)
+						i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.HomeCommunityId = Regional_OID
 						i.XDWDocument.TaskList.XDWTask[k].TaskData.TaskDetails.LastModifiedTime = ev.Creationtime
 						i.XDWDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
 						i.XDWDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActualOwner = ev.User + " " + ev.Org + " " + ev.Role
