@@ -518,7 +518,7 @@ func (i *Transaction) isInputRegistered(ev tukdbint.Event) bool {
 					return true
 				}
 			} else {
-				if input.Part.AttachmentInfo.Identifier == "/eventservice/event?act=events&id="+tukutil.GetStringFromInt(int(ev.Id)) {
+				if input.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
 					log.Println("Event is registered. Skipping Event ")
 					return true
 				}
@@ -537,7 +537,7 @@ func (i *Transaction) isOutputRegistered(ev tukdbint.Event) bool {
 					return true
 				}
 			} else {
-				if output.Part.AttachmentInfo.Identifier == "/eventservice/event?act=events&id="+tukutil.GetStringFromInt(int(ev.Id)) {
+				if output.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
 					log.Println("Event is registered. Skipping Event ")
 					return true
 				}
@@ -569,7 +569,7 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 						if wfdoctask.TaskData.Input[inp].Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
 							i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
 						} else {
-							i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = "/eventservice/event?act=events&id=" + tukutil.GetStringFromInt(int(ev.Id))
+							i.XDWDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
 						}
 						i.newTaskEvent(ev)
 						wfseqnum, _ := strconv.ParseInt(i.XDWDocument.WorkflowDocumentSequenceNumber, 0, 0)
@@ -594,7 +594,7 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 						if strings.HasSuffix(wfdoctask.TaskData.Output[oup].Part.AttachmentInfo.AccessType, tukcnst.XDS_REGISTERED) {
 							i.XDWDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
 						} else {
-							i.XDWDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = "/eventservice/event?act=events&id=" + tukutil.GetStringFromInt(int(ev.Id))
+							i.XDWDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
 						}
 						i.newTaskEvent(ev)
 						wfseqnum, _ := strconv.ParseInt(i.XDWDocument.WorkflowDocumentSequenceNumber, 0, 0)
