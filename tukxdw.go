@@ -1478,39 +1478,58 @@ func (i *Transaction) registerWorkflowDef() error {
 	event := tukdsub.DSUBEvent{Action: tukcnst.CANCEL, Pathway: i.XDWDefinition.Ref}
 	tukdsub.New_Transaction(&event)
 	log.Printf("Cancelled any existing DSUB Broker and Event Service Subscriptions for Pathway %s", i.XDWDefinition.Ref)
-	pwyExpressions := make(map[string]string)
+	dsubSubs := make(map[string]string)
+	eventSubs := make(map[string]string)
 	if err = i.PersistXDWDefinition(); err == nil {
 		log.Println("Parsing XDW Tasks for potential DSUB Broker Subscriptions")
 		for _, task := range i.XDWDefinition.Tasks {
 			for _, inp := range task.Input {
 				log.Printf("Checking Task %v %s input %s", task.ID, task.Name, inp.Name)
-				if inp.AccessType == tukcnst.XDS_REGISTERED {
-					pwyExpressions[inp.Name] = i.XDWDefinition.Ref
+				switch inp.AccessType {
+				case tukcnst.XDS_REGISTERED:
+					dsubSubs[inp.Name] = i.XDWDefinition.Ref
 					log.Printf("Task %v %s input %s included in potential DSUB Broker subscriptions", task.ID, task.Name, inp.Name)
-				} else {
-					log.Printf("Task %v %s input %s does not require a DSUB Broker subscription", task.ID, task.Name, inp.Name)
+				case "URL":
+					eventSubs[inp.Name] = i.XDWDefinition.Ref
+					log.Printf("Task %v %s input %s included in potential User Event subscriptions", task.ID, task.Name, inp.Name)
 				}
 			}
 			for _, out := range task.Output {
 				log.Printf("Checking Task %v %s output %s", task.ID, task.Name, out.Name)
-				if out.AccessType == tukcnst.XDS_REGISTERED {
-					pwyExpressions[out.Name] = i.XDWDefinition.Ref
-					log.Printf("Task %v %s output %s included in potential DSUB Broker subscriptions", task.ID, task.Name, out.Name)
-				} else {
-					log.Printf("Task %v %s output %s does not require a DSUB Broker subscription", task.ID, task.Name, out.Name)
+				switch out.AccessType {
+				case tukcnst.XDS_REGISTERED:
+					dsubSubs[out.Name] = i.XDWDefinition.Ref
+					log.Printf("Task %v %s input %s included in potential DSUB Broker subscriptions", task.ID, task.Name, out.Name)
+				case "URL":
+					eventSubs[out.Name] = i.XDWDefinition.Ref
+					log.Printf("Task %v %s input %s included in potential User Event subscriptions", task.ID, task.Name, out.Name)
 				}
 			}
 		}
 	}
-	log.Printf("Found %v potential DSUB Broker Subscriptions - %s", len(pwyExpressions), pwyExpressions)
-	if len(pwyExpressions) > 0 {
+	log.Printf("Found %v potential DSUB Broker Subscriptions - %s", len(dsubSubs), dsubSubs)
+	if len(dsubSubs) > 0 {
 		event.Action = tukcnst.CREATE
 		event.BrokerURL = i.DSUB_BrokerURL
 		event.ConsumerURL = i.DSUB_ConsumerURL
-		for expression := range pwyExpressions {
+		for expression := range dsubSubs {
 			event.Expressions = append(event.Expressions, expression)
 		}
 		err = tukdsub.New_Transaction(&event)
+	}
+	if len(eventSubs) > 0 {
+		for exp, wf := range eventSubs {
+			subs := tukdbint.Subscriptions{Action: tukcnst.SELECT}
+			sub := tukdbint.Subscription{Pathway: wf, Topic: "URL", Expression: exp}
+			subs.Subscriptions = append(subs.Subscriptions, sub)
+			tukdbint.NewDBEvent(&subs)
+			if subs.Count == 0 {
+				subs := tukdbint.Subscriptions{Action: tukcnst.INSERT}
+				sub := tukdbint.Subscription{BrokerRef: "Event_Service", Pathway: wf, Topic: "URL", Expression: exp}
+				subs.Subscriptions = append(subs.Subscriptions, sub)
+				tukdbint.NewDBEvent(&subs)
+			}
+		}
 	}
 	return err
 }
