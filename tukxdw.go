@@ -1409,7 +1409,7 @@ func (i *Transaction) SetDashboardState() error {
 			wfstate = tukdbint.Workflowstate{
 				WorkflowId:     wf.Id,
 				Pathway:        wf.Pathway,
-				NHS:            wf.NHSId,
+				NHSId:          wf.NHSId,
 				Version:        wf.Version,
 				Published:      wf.Published,
 				Created:        i.XDWDocument.EffectiveTime.Value,
