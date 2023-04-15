@@ -446,8 +446,7 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 func (i *Transaction) contentUpdater() error {
 	log.Printf("Updating %s Workflow Version %v for NHS ID %s", i.Pathway, i.XDWVersion, i.NHS_ID)
 	i.Workflows = tukdbint.GetWorkflows(i.Pathway, i.NHS_ID, "", "", i.XDWVersion, false, "")
-	if i.Workflows.Count == 1 {
-		wf := i.Workflows.Workflows[1]
+	for _, wf := range i.Workflows.Workflows {
 		if err := json.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
 			log.Println(err.Error())
 			return err
@@ -470,6 +469,7 @@ func (i *Transaction) contentUpdater() error {
 							if taskevent.ID == tukutil.GetStringFromInt(int(ev.Id)) {
 								log.Printf("Task %s Event %v is registered. Skipping Event", task.TaskData.TaskDetails.ID, ev.Id)
 								hasevent = true
+								continue
 							}
 						}
 						if !hasevent {
@@ -610,11 +610,8 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 	}
 
 	for task := range i.XDWDocument.TaskList.XDWTask {
-		i.Task_ID = task
-		if i.XDWDocument.TaskList.XDWTask[task].TaskData.TaskDetails.Status != tukcnst.COMPLETE {
-			if i.IsTaskCompleteBehaviorMet() {
-				i.XDWDocument.TaskList.XDWTask[task].TaskData.TaskDetails.Status = tukcnst.COMPLETE
-			}
+		if i.IsTaskCompleteBehaviorMet() {
+			i.XDWDocument.TaskList.XDWTask[task].TaskData.TaskDetails.Status = tukcnst.COMPLETE
 		}
 	}
 
@@ -907,7 +904,7 @@ func (i *Transaction) GetTaskCompleteByDate() time.Time {
 	}
 	return tukutil.OHT_FutureDate(tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value), i.XDWDefinition.Tasks[i.Task_ID-1].CompleteByTime)
 }
-func (i *XDWWorkflowDocument) GetWorkflowDuration() string {
+func (i *XDWWorkflowDocument) GetPrettyWorkflowDuration() (string, float64) {
 	ws := tukutil.GetTimeFromString(i.EffectiveTime.Value)
 	log.Printf("Workflow Started %s Status %s", ws.String(), i.WorkflowStatus)
 	we := time.Now()
@@ -918,7 +915,7 @@ func (i *XDWWorkflowDocument) GetWorkflowDuration() string {
 	}
 	duration := we.Sub(ws)
 	log.Println("Duration - " + duration.String())
-	return tukutil.GetDuration(ws.String(), we.String())
+	return tukutil.GetDuration(ws.String(), we.String()), duration.Seconds()
 }
 func (i *Transaction) SetWorkflowDuration() {
 	ws := tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value)
@@ -1074,7 +1071,7 @@ func (i *Transaction) setIsWorkflowOverdueState() bool {
 				return i.XDWState.LatestWorkflowEventTime.After(completebyDate)
 			} else {
 				log.Printf("Workflow is not Complete. Complete By Date is %s Workflow Target not met", completebyDate.String())
-				return false
+				return true
 			}
 		} else {
 			log.Printf("Time Now is before Workflow Complete By Date %s. Workflow is not overdue", completebyDate.String())
@@ -1404,16 +1401,67 @@ func (i *Transaction) SetDashboardState() error {
 				log.Println(err.Error())
 				return err
 			}
+			wfstates := tukdbint.WorkflowStates{Action: tukcnst.DELETE}
+			wfstate := tukdbint.Workflowstate{WorkflowId: wf.Id}
+			wfstates.Workflowstate = append(wfstates.Workflowstate, wfstate)
+			tukdbint.NewDBEvent(&wfstates)
+			wfstates = tukdbint.WorkflowStates{Action: tukcnst.INSERT}
+			wfstate = tukdbint.Workflowstate{
+				WorkflowId:     wf.Id,
+				Pathway:        wf.Pathway,
+				NHS:            wf.NHSId,
+				Version:        wf.Version,
+				Published:      wf.Published,
+				Created:        i.XDWDocument.EffectiveTime.Value,
+				CreatedBy:      i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Family + " " + i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Prefix,
+				Status:         i.XDWDocument.WorkflowStatus,
+				CompleteBy:     "Non Specified",
+				LastUpdate:     i.XDWDocument.GetLatestWorkflowEventTime().String(),
+				Owner:          "",
+				Overdue:        false,
+				Escalated:      false,
+				TargetMet:      true,
+				InProgress:     false,
+				Duration:       0,
+				PrettyDuration: "0 mins",
+			}
+			prettyDuration, duration := i.XDWDocument.GetPrettyWorkflowDuration()
+			wfstate.Duration = int(duration)
+			wfstate.PrettyDuration = prettyDuration
+
+			workflowStartTime := tukutil.GetTimeFromString(wfstate.Created)
+			workflowCompleteByDate := workflowStartTime
+			if i.XDWDefinition.CompleteByTime == "" {
+				log.Println("No Completion Date for Workflow Specified")
+			} else {
+				period := strings.Split(i.XDWDefinition.CompleteByTime, "(")[0]
+				periodDuration := tukutil.GetIntFromString(strings.Split(strings.Split(i.XDWDefinition.CompleteByTime, "(")[1], ")")[0])
+				switch period {
+				case "month":
+					workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, periodDuration, 0, 0, 0)
+				case "day":
+					workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, periodDuration, 0, 0)
+				case "hour":
+					workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, 0, periodDuration, 0)
+				case "min":
+					workflowCompleteByDate = tukutil.GetFutureDate(workflowStartTime, 0, 0, 0, 0, periodDuration)
+				}
+				if workflowCompleteByDate != workflowStartTime {
+					wfstate.CompleteBy = strings.Split(workflowCompleteByDate.String(), " +")[0]
+				}
+			}
 			if i.XDWDocument.WorkflowStatus == tukcnst.OPEN {
 				log.Printf("Workflow %s is OPEN", wf.XDW_Key)
 				i.OpenWorkflows.Workflows = append(i.OpenWorkflows.Workflows, wf)
 				i.OpenWorkflows.Count = i.OpenWorkflows.Count + 1
 				i.Dashboard.InProgress = i.Dashboard.InProgress + 1
+				wfstate.InProgress = true
 				if i.IsWorkflowEscalated() {
 					log.Printf("Workflow %s is ESCALATED", wf.XDW_Key)
 					i.EscalteWorkflows.Workflows = append(i.EscalteWorkflows.Workflows, wf)
 					i.EscalteWorkflows.Count = i.EscalteWorkflows.Count + 1
 					i.Dashboard.Escalated = i.Dashboard.Escalated + 1
+					wfstate.Escalated = true
 				}
 			} else {
 				log.Printf("Workflow %s is CLOSED", wf.XDW_Key)
@@ -1427,6 +1475,8 @@ func (i *Transaction) SetDashboardState() error {
 				i.OverdueWorkflows.Workflows = append(i.OverdueWorkflows.Workflows, wf)
 				i.OverdueWorkflows.Count = i.OverdueWorkflows.Count + 1
 				i.Dashboard.TargetMissed = i.Dashboard.TargetMissed + 1
+				wfstate.Overdue = true
+				wfstate.TargetMet = false
 			} else {
 				if i.XDWDocument.WorkflowStatus == tukcnst.CLOSED {
 					log.Printf("Workflow %s Target is MET", wf.XDW_Key)
