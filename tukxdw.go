@@ -1399,7 +1399,10 @@ func (i *Transaction) SetDashboardState() error {
 			wfstates := tukdbint.WorkflowStates{Action: tukcnst.DELETE}
 			wfstate := tukdbint.Workflowstate{WorkflowId: wf.Id}
 			wfstates.Workflowstate = append(wfstates.Workflowstate, wfstate)
-			tukdbint.NewDBEvent(&wfstates)
+			if err = tukdbint.NewDBEvent(&wfstates); err != nil {
+				log.Println(err.Error())
+				return err
+			}
 			log.Printf("Updating State for Workflow ID %v", wf.Id)
 			wfstates = tukdbint.WorkflowStates{Action: tukcnst.INSERT}
 			wfstate = tukdbint.Workflowstate{
