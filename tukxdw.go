@@ -298,8 +298,6 @@ func (i *Transaction) execute() error {
 		return i.contentCreator()
 	case tukcnst.XDW_ACTOR_CONTENT_CONSUMER:
 		return i.contentConsumer()
-	case tukcnst.XDW_ACTOR_CONTENT_UPDATER:
-		return i.contentUpdater()
 	}
 	return nil
 }
@@ -444,9 +442,12 @@ func ContentUpdater(pwy string, vers int, nhsId string, user string) error {
 	return tukdbint.NewDBEvent(&wfs)
 }
 func (i *Transaction) contentUpdater() error {
-	log.Printf("Updating %s Workflow Version %v for NHS ID %s", i.Pathway, i.XDWVersion, i.NHS_ID)
-	i.Workflows = tukdbint.GetWorkflows(i.Pathway, i.NHS_ID, "", "", i.XDWVersion, false, "")
 	for _, wf := range i.Workflows.Workflows {
+		log.Printf("Updating %s Workflow Version %v for NHS ID %s", wf.Pathway, wf.Version, wf.NHSId)
+
+		if wf.Id == 0 {
+			continue
+		}
 		if err := json.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
 			log.Println(err.Error())
 			return err
@@ -455,7 +456,7 @@ func (i *Transaction) contentUpdater() error {
 			log.Println(err.Error())
 			return err
 		}
-		i.XDWEvents = tukdbint.GetEvents("", i.Pathway, i.NHS_ID, "", -1, i.XDWVersion)
+		i.XDWEvents = tukdbint.GetEvents("", wf.Pathway, wf.NHSId, "", -1, wf.Version)
 		log.Printf("Processing %v Events", i.XDWEvents.Count)
 		newEvents := tukdbint.Events{}
 		for _, ev := range i.XDWEvents.Events {
@@ -784,7 +785,16 @@ func (i *Transaction) createWorkflow() {
 
 // IHE XDW Content Consumer
 func (i *Transaction) contentConsumer() error {
+	i.Workflows = tukdbint.Workflows{Action: tukcnst.SELECT}
+	wf := tukdbint.Workflow{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion}
+	i.Workflows.Workflows = append(i.Workflows.Workflows, wf)
+	if err := tukdbint.NewDBEvent(&i.Workflows); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
 	i.contentUpdater()
+
 	if err := i.setXDWStates(); err != nil {
 		return err
 	}
@@ -1370,34 +1380,19 @@ func getLocalId(mid string) string {
 }
 func (i *Transaction) setXDWStates() error {
 	log.Println("Setting XDW States")
-	i.Workflows = tukdbint.Workflows{Action: tukcnst.SELECT}
-	wf := tukdbint.Workflow{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion}
-	i.Workflows.Workflows = append(i.Workflows.Workflows, wf)
-	i.XDWEvents = tukdbint.Events{Action: tukcnst.SELECT}
-	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion}
-	i.XDWEvents.Events = append(i.XDWEvents.Events, ev)
-
-	if err := tukdbint.NewDBEvent(&i.Workflows); err != nil {
-		log.Println(err.Error())
-		return err
-	}
-	if err := tukdbint.NewDBEvent(&i.XDWEvents); err != nil {
-		log.Println(err.Error())
-		return err
-	}
-
 	return i.SetDashboardState()
 }
 func (i *Transaction) SetDashboardState() error {
+	var err error
 	i.Dashboard.Total = i.Workflows.Count
 	for _, wf := range i.Workflows.Workflows {
 		if len(wf.XDW_Doc) > 0 {
-			if err := xml.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
+			if err = xml.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
 				log.Println(err.Error())
 				return err
 			}
 			log.Printf("%s Workflow Status is %s", wf.XDW_Key, i.XDWDocument.WorkflowStatus)
-			if err := json.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
+			if err = json.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
 				log.Println(err.Error())
 				return err
 			}
@@ -1405,6 +1400,7 @@ func (i *Transaction) SetDashboardState() error {
 			wfstate := tukdbint.Workflowstate{WorkflowId: wf.Id}
 			wfstates.Workflowstate = append(wfstates.Workflowstate, wfstate)
 			tukdbint.NewDBEvent(&wfstates)
+			log.Printf("Updating State for Workflow ID %v", wf.Id)
 			wfstates = tukdbint.WorkflowStates{Action: tukcnst.INSERT}
 			wfstate = tukdbint.Workflowstate{
 				WorkflowId:     wf.Id,
@@ -1485,9 +1481,11 @@ func (i *Transaction) SetDashboardState() error {
 					i.Dashboard.TargetMet = i.Dashboard.TargetMet + 1
 				}
 			}
+			wfstates.Workflowstate = append(wfstates.Workflowstate, wfstate)
+			err = tukdbint.NewDBEvent(&wfstates)
 		}
 	}
-	return nil
+	return err
 }
 func (i *Transaction) IsWorkflowEscalated() bool {
 	if i.XDWDefinition.ExpirationTime != "" {
