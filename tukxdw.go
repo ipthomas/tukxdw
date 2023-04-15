@@ -914,7 +914,7 @@ func (i *Transaction) GetTaskCompleteByDate() time.Time {
 	}
 	return tukutil.OHT_FutureDate(tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value), i.XDWDefinition.Tasks[i.Task_ID-1].CompleteByTime)
 }
-func (i *XDWWorkflowDocument) GetPrettyWorkflowDuration() (string, float64) {
+func (i *XDWWorkflowDocument) GetPrettyWorkflowDuration() string {
 	ws := tukutil.GetTimeFromString(i.EffectiveTime.Value)
 	log.Printf("Workflow Started %s Status %s", ws.String(), i.WorkflowStatus)
 	we := time.Now()
@@ -925,7 +925,7 @@ func (i *XDWWorkflowDocument) GetPrettyWorkflowDuration() (string, float64) {
 	}
 	duration := we.Sub(ws)
 	log.Println("Duration - " + duration.String())
-	return tukutil.GetDuration(ws.String(), we.String()), duration.Seconds()
+	return tukutil.GetDuration(ws.String(), we.String())
 }
 func (i *Transaction) SetWorkflowDuration() {
 	ws := tukutil.GetTimeFromString(i.XDWDocument.EffectiveTime.Value)
@@ -1421,12 +1421,9 @@ func (i *Transaction) SetDashboardState() error {
 				Escalated:     "false",
 				TargetMet:     "true",
 				InProgress:    "false",
-				Duration:      "0 mins",
+				Duration:      i.XDWDocument.GetPrettyWorkflowDuration(),
 				TimeRemaining: i.GetWorkflowTimeRemaining(),
 			}
-			prettyDuration, duration := i.XDWDocument.GetPrettyWorkflowDuration()
-			wfstate.Duration = int(duration)
-			wfstate.PrettyDuration = prettyDuration
 
 			workflowStartTime := tukutil.GetTimeFromString(wfstate.Created)
 			workflowCompleteByDate := workflowStartTime
@@ -1454,13 +1451,13 @@ func (i *Transaction) SetDashboardState() error {
 				i.OpenWorkflows.Workflows = append(i.OpenWorkflows.Workflows, wf)
 				i.OpenWorkflows.Count = i.OpenWorkflows.Count + 1
 				i.Dashboard.InProgress = i.Dashboard.InProgress + 1
-				wfstate.InProgress = true
+				wfstate.InProgress = "true"
 				if i.IsWorkflowEscalated() {
 					log.Printf("Workflow %s is ESCALATED", wf.XDW_Key)
 					i.EscalteWorkflows.Workflows = append(i.EscalteWorkflows.Workflows, wf)
 					i.EscalteWorkflows.Count = i.EscalteWorkflows.Count + 1
 					i.Dashboard.Escalated = i.Dashboard.Escalated + 1
-					wfstate.Escalated = true
+					wfstate.Escalated = "true"
 				}
 			} else {
 				log.Printf("Workflow %s is CLOSED", wf.XDW_Key)
@@ -1474,8 +1471,8 @@ func (i *Transaction) SetDashboardState() error {
 				i.OverdueWorkflows.Workflows = append(i.OverdueWorkflows.Workflows, wf)
 				i.OverdueWorkflows.Count = i.OverdueWorkflows.Count + 1
 				i.Dashboard.TargetMissed = i.Dashboard.TargetMissed + 1
-				wfstate.Overdue = true
-				wfstate.TargetMet = false
+				wfstate.Overdue = "true"
+				wfstate.TargetMet = "false"
 			} else {
 				if i.XDWDocument.WorkflowStatus == tukcnst.CLOSED {
 					log.Printf("Workflow %s Target is MET", wf.XDW_Key)
