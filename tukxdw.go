@@ -1380,9 +1380,6 @@ func getLocalId(mid string) string {
 }
 func (i *Transaction) setXDWStates() error {
 	log.Println("Setting XDW States")
-	return i.SetDashboardState()
-}
-func (i *Transaction) SetDashboardState() error {
 	var err error
 	i.Dashboard.Total = i.Workflows.Count
 	for _, wf := range i.Workflows.Workflows {
@@ -1397,7 +1394,7 @@ func (i *Transaction) SetDashboardState() error {
 				return err
 			}
 			wfstates := tukdbint.WorkflowStates{Action: tukcnst.DELETE}
-			wfstate := tukdbint.Workflowstate{WorkflowId: wf.Id}
+			wfstate := tukdbint.Workflowstate{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion}
 			wfstates.Workflowstate = append(wfstates.Workflowstate, wfstate)
 			if err = tukdbint.NewDBEvent(&wfstates); err != nil {
 				log.Println(err.Error())
@@ -1448,36 +1445,26 @@ func (i *Transaction) SetDashboardState() error {
 			}
 			if i.XDWDocument.WorkflowStatus == tukcnst.OPEN {
 				log.Printf("Workflow %s is OPEN", wf.XDW_Key)
-				i.OpenWorkflows.Workflows = append(i.OpenWorkflows.Workflows, wf)
-				i.OpenWorkflows.Count = i.OpenWorkflows.Count + 1
 				i.Dashboard.InProgress = i.Dashboard.InProgress + 1
 				wfstate.InProgress = "TRUE"
 				if i.IsWorkflowEscalated() {
 					log.Printf("Workflow %s is ESCALATED", wf.XDW_Key)
-					i.EscalteWorkflows.Workflows = append(i.EscalteWorkflows.Workflows, wf)
-					i.EscalteWorkflows.Count = i.EscalteWorkflows.Count + 1
 					i.Dashboard.Escalated = i.Dashboard.Escalated + 1
 					wfstate.Escalated = "TRUE"
 				}
 			} else {
 				log.Printf("Workflow %s is CLOSED", wf.XDW_Key)
-				i.ClosedWorkflows.Workflows = append(i.ClosedWorkflows.Workflows, wf)
-				i.ClosedWorkflows.Count = i.ClosedWorkflows.Count + 1
 				i.Dashboard.Complete = i.Dashboard.Complete + 1
 			}
 
 			if i.setIsWorkflowOverdueState() {
 				log.Printf("Workflow %s Target is MISSED", wf.XDW_Key)
-				i.OverdueWorkflows.Workflows = append(i.OverdueWorkflows.Workflows, wf)
-				i.OverdueWorkflows.Count = i.OverdueWorkflows.Count + 1
 				i.Dashboard.TargetMissed = i.Dashboard.TargetMissed + 1
 				wfstate.Overdue = "TRUE"
 				wfstate.TargetMet = "FALSE"
 			} else {
 				if i.XDWDocument.WorkflowStatus == tukcnst.CLOSED {
 					log.Printf("Workflow %s Target is MET", wf.XDW_Key)
-					i.TargetMetWorkflows.Workflows = append(i.TargetMetWorkflows.Workflows, wf)
-					i.TargetMetWorkflows.Count = i.TargetMetWorkflows.Count + 1
 					i.Dashboard.TargetMet = i.Dashboard.TargetMet + 1
 				}
 			}
