@@ -301,16 +301,18 @@ func (i *Transaction) ContentUpdater() error {
 	i.XDWEvents = tukdbint.Events{Action: tukcnst.SELECT}
 	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion}
 	i.XDWEvents.Events = append(i.XDWEvents.Events, ev)
-	log.Printf("Updating State for %v Workflows", i.Workflows.Count)
-	if err := tukdbint.NewDBEvent(&i.Workflows); err != nil {
+	if err := tukdbint.NewDBEvent(&i.XDWEvents); err != nil {
 		log.Println(err.Error())
 		return err
 	}
+	log.Printf("Updating state of %v Workflows with %v Events", i.Workflows.Count, i.XDWEvents.Count)
+
 	for _, wf := range i.Workflows.Workflows {
-		log.Printf("Updating %s Workflow Version %v for NHS ID %s", wf.Pathway, wf.Version, wf.NHSId)
 		if wf.Id == 0 {
 			continue
 		}
+		log.Printf("Updating %s Workflow Version %v for NHS ID %s", wf.Pathway, wf.Version, wf.NHSId)
+
 		if err := json.Unmarshal([]byte(wf.XDW_Def), &i.XDWDefinition); err != nil {
 			log.Println(err.Error())
 			return err
