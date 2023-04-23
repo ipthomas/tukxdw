@@ -340,7 +340,7 @@ func (i *Transaction) ContentUpdater() error {
 				}
 				if newevent {
 					newEvents.Events = append(newEvents.Events, ev)
-					log.Printf("Task %s Event %v is not registered. Including Event in Workflow Task events updates", task.TaskData.TaskDetails.ID, ev.Id)
+					log.Printf("Event %v is not registered. Including Event in Workflow Task events updates", ev.Id)
 				}
 			}
 		}
