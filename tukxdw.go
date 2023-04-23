@@ -325,6 +325,9 @@ func (i *Transaction) ContentUpdater() error {
 		newEvents := tukdbint.Events{}
 		cnt := 0
 		for _, ev := range i.XDWEvents.Events {
+			if ev.Id == 0 {
+				continue
+			}
 			cnt = cnt + 1
 			log.Printf("Processing Event %v ID %v Obtaining Workflow Task", cnt, ev.Id)
 			newevent := true
