@@ -420,9 +420,10 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 		}
 	}
 
-	for task := range i.XDWDocument.TaskList.XDWTask {
+	for k, task := range i.XDWDocument.TaskList.XDWTask {
+		i.Task_ID = tukutil.GetIntFromString(task.TaskData.TaskDetails.ID)
 		if i.IsTaskCompleteBehaviorMet() {
-			i.XDWDocument.TaskList.XDWTask[task].TaskData.TaskDetails.Status = tukcnst.COMPLETE
+			i.XDWDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.COMPLETE
 		}
 	}
 
