@@ -421,7 +421,7 @@ func (i *Transaction) UpdateXDWDocumentTasks() error {
 	}
 
 	for k, task := range i.XDWDocument.TaskList.XDWTask {
-		i.Task_ID = tukutil.GetIntFromString(task.TaskData.TaskDetails.ID)
+		i.Task_ID = tukutil.GetIntFromString(task.TaskData.TaskDetails.ID) - 1
 		if i.IsTaskCompleteBehaviorMet() {
 			i.XDWDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.COMPLETE
 		}
@@ -1015,7 +1015,7 @@ func (i *Transaction) IsTaskCompleteBehaviorMet() bool {
 			} else {
 				conditions = append(conditions, cond.Completion.Condition)
 			}
-			log.Printf("Checkign Task %v %v completion conditions", i.Task_ID, len(conditions))
+			log.Printf("Checkiing Task %v %v completion conditions", i.Task_ID, len(conditions))
 			for _, condition := range conditions {
 				endMethodInd := strings.Index(condition, "(")
 				if endMethodInd > 0 {
