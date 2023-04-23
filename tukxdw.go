@@ -326,22 +326,21 @@ func (i *Transaction) ContentUpdater() error {
 		for _, ev := range i.XDWEvents.Events {
 			if ev.Id != 0 && ev.Pathway == wf.Pathway && ev.NhsId == wf.NHSId && ev.Version == wf.Version {
 				log.Printf("Processing Event ID %v Obtaining Workflow Task %v", ev.Id, ev.TaskId)
+				newevent := true
 				for _, task := range i.XDWDocument.TaskList.XDWTask {
 					if task.TaskData.TaskDetails.ID == tukutil.GetStringFromInt(ev.TaskId) {
 						log.Printf("Found Task %s Searching Task Events for matching event ID %v", task.TaskData.TaskDetails.ID, ev.Id)
-						hasevent := false
 						for _, taskevent := range task.TaskEventHistory.TaskEvent {
 							if taskevent.ID == tukutil.GetStringFromInt(int(ev.Id)) {
 								log.Printf("Task %s Event %v is registered. Skipping Event", task.TaskData.TaskDetails.ID, ev.Id)
-								hasevent = true
-								continue
+								newevent = false
 							}
 						}
-						if !hasevent {
-							newEvents.Events = append(newEvents.Events, ev)
-							log.Printf("Task %s Event %v is not registered. Including Event in Workflow Task events updates", task.TaskData.TaskDetails.ID, ev.Id)
-						}
 					}
+				}
+				if newevent {
+					newEvents.Events = append(newEvents.Events, ev)
+					log.Printf("Task %s Event %v is not registered. Including Event in Workflow Task events updates", task.TaskData.TaskDetails.ID, ev.Id)
 				}
 			}
 		}
