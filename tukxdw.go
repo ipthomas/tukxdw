@@ -323,25 +323,25 @@ func (i *Transaction) ContentUpdater() error {
 		}
 		log.Printf("Processing %v Events", i.XDWEvents.Count)
 		newEvents := tukdbint.Events{}
+		cnt := 0
 		for _, ev := range i.XDWEvents.Events {
-			if ev.Id != 0 && ev.Pathway == wf.Pathway && ev.NhsId == wf.NHSId && ev.Version == wf.Version {
-				log.Printf("Processing Event ID %v Obtaining Workflow Task %v", ev.Id, ev.TaskId)
-				newevent := true
-				for _, task := range i.XDWDocument.TaskList.XDWTask {
-					if task.TaskData.TaskDetails.ID == tukutil.GetStringFromInt(ev.TaskId) {
-						log.Printf("Found Task %s Searching Task Events for matching event ID %v", task.TaskData.TaskDetails.ID, ev.Id)
-						for _, taskevent := range task.TaskEventHistory.TaskEvent {
-							if taskevent.ID == tukutil.GetStringFromInt(int(ev.Id)) {
-								log.Printf("Task %s Event %v is registered. Skipping Event", task.TaskData.TaskDetails.ID, ev.Id)
-								newevent = false
-							}
+			cnt = cnt + 1
+			log.Printf("Processing Event %v ID %v Obtaining Workflow Task", cnt, ev.Id)
+			newevent := true
+			for _, task := range i.XDWDocument.TaskList.XDWTask {
+				if task.TaskData.TaskDetails.ID == tukutil.GetStringFromInt(ev.TaskId) {
+					log.Printf("Searching Task %s eevents for matching event ID %v", task.TaskData.TaskDetails.ID, ev.Id)
+					for _, taskevent := range task.TaskEventHistory.TaskEvent {
+						if taskevent.ID == tukutil.GetStringFromInt(int(ev.Id)) {
+							log.Printf("Task %s Event %v is registered. Skipping Event", task.TaskData.TaskDetails.ID, ev.Id)
+							newevent = false
 						}
 					}
 				}
-				if newevent {
-					newEvents.Events = append(newEvents.Events, ev)
-					log.Printf("Event %v is not registered. Including Event in Workflow Task events updates", ev.Id)
-				}
+			}
+			if newevent {
+				newEvents.Events = append(newEvents.Events, ev)
+				log.Printf("Event %v is not registered. Including Event in Workflow Task events updates", ev.Id)
 			}
 		}
 		if len(newEvents.Events) > 0 {
