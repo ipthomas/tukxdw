@@ -33,6 +33,7 @@ type Transaction struct {
 	NHS_ID           string
 	Task_ID          int
 	XDWVersion       int
+	Status           string
 	DSUB_BrokerURL   string
 	DSUB_ConsumerURL string
 	Request          []byte
@@ -711,7 +712,7 @@ func (i *Transaction) persistWorkflowState() error {
 // IHE XDW Content Consumer
 func (i *Transaction) ContentConsumer() error {
 	i.Workflows = tukdbint.Workflows{Action: tukcnst.SELECT}
-	wf := tukdbint.Workflow{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion}
+	wf := tukdbint.Workflow{Pathway: i.Pathway, NHSId: i.NHS_ID, Version: i.XDWVersion, Status: i.Status}
 	i.Workflows.Workflows = append(i.Workflows.Workflows, wf)
 	if err := tukdbint.NewDBEvent(&i.Workflows); err != nil {
 		log.Println(err.Error())
