@@ -64,7 +64,6 @@ type Dashboard struct {
 	Escalated    int
 	Complete     int
 }
-
 type XDSDocumentMeta struct {
 	ID                    string `json:"id"`
 	Repositoryuniqueid    string `json:"repositoryuniqueid"`
@@ -140,118 +139,240 @@ type WorkflowDefinition struct {
 		} `json:"output,omitempty"`
 	} `json:"tasks"`
 }
+
+//	type WorkflowDocument struct {
+//		XMLName struct {
+//			Space string `json:"Space"`
+//			Local string `json:"Local"`
+//		} `json:"XMLName"`
+//		Hl7            string `json:"Hl7"`
+//		WsHt           string `json:"WsHt"`
+//		Xdw            string `json:"Xdw"`
+//		Xsi            string `json:"Xsi"`
+//		SchemaLocation string `json:"SchemaLocation"`
+//		ID             struct {
+//			Root                   string `json:"Root"`
+//			Extension              string `json:"Extension"`
+//			AssigningAuthorityName string `json:"AssigningAuthorityName"`
+//		} `json:"ID"`
+//		EffectiveTime struct {
+//			Value string `json:"Value"`
+//		} `json:"EffectiveTime"`
+//		ConfidentialityCode struct {
+//			Code string `json:"Code"`
+//		} `json:"ConfidentialityCode"`
+//		Patient struct {
+//			ID struct {
+//				Root                   string `json:"Root"`
+//				Extension              string `json:"Extension"`
+//				AssigningAuthorityName string `json:"AssigningAuthorityName"`
+//			} `json:"ID"`
+//		} `json:"Patient"`
+//		Author struct {
+//			AssignedAuthor struct {
+//				ID struct {
+//					Root                   string `json:"Root"`
+//					Extension              string `json:"Extension"`
+//					AssigningAuthorityName string `json:"AssigningAuthorityName"`
+//				} `json:"ID"`
+//				AssignedPerson struct {
+//					Name struct {
+//						Family string `json:"Family"`
+//						Prefix string `json:"Prefix"`
+//					} `json:"Name"`
+//				} `json:"AssignedPerson"`
+//			} `json:"AssignedAuthor"`
+//		} `json:"Author"`
+//		WorkflowInstanceID             string `json:"WorkflowInstanceId"`
+//		WorkflowDocumentSequenceNumber string `json:"WorkflowDocumentSequenceNumber"`
+//		WorkflowStatus                 string `json:"WorkflowStatus"`
+//		WorkflowStatusHistory          struct {
+//			DocumentEvent []struct {
+//				EventTime           string `json:"EventTime"`
+//				EventType           string `json:"EventType"`
+//				TaskEventIdentifier string `json:"TaskEventIdentifier"`
+//				Author              string `json:"Author"`
+//				PreviousStatus      string `json:"PreviousStatus"`
+//				ActualStatus        string `json:"ActualStatus"`
+//			} `json:"DocumentEvent"`
+//		} `json:"WorkflowStatusHistory"`
+//		WorkflowDefinitionReference string `json:"WorkflowDefinitionReference"`
+//		TaskList                    struct {
+//			XDWTask []Task `json:"XDWTask"`
+//		} `json:"TaskList"`
+//	}
+//
+//	type InputPart []struct {
+//		Part struct {
+//			Name           string `json:"Name"`
+//			AttachmentInfo struct {
+//				Identifier      string `json:"Identifier"`
+//				Name            string `json:"Name"`
+//				AccessType      string `json:"AccessType"`
+//				ContentType     string `json:"ContentType"`
+//				ContentCategory string `json:"ContentCategory"`
+//				AttachedTime    string `json:"AttachedTime"`
+//				AttachedBy      string `json:"AttachedBy"`
+//				HomeCommunityID string `json:"HomeCommunityId"`
+//			} `json:"AttachmentInfo"`
+//		} `json:"Part"`
+//	}
+//
+//	type OutputPart []struct {
+//		Part struct {
+//			Name           string `json:"Name"`
+//			AttachmentInfo struct {
+//				Identifier      string `json:"Identifier"`
+//				Name            string `json:"Name"`
+//				AccessType      string `json:"AccessType"`
+//				ContentType     string `json:"ContentType"`
+//				ContentCategory string `json:"ContentCategory"`
+//				AttachedTime    string `json:"AttachedTime"`
+//				AttachedBy      string `json:"AttachedBy"`
+//				HomeCommunityID string `json:"HomeCommunityId"`
+//			} `json:"AttachmentInfo"`
+//		} `json:"Part"`
+//	}
+//
+//	type TaskEventsHistory struct {
+//		TaskEvent []struct {
+//			ID         string `json:"ID"`
+//			EventTime  string `json:"EventTime"`
+//			Identifier string `json:"Identifier"`
+//			EventType  string `json:"EventType"`
+//			Status     string `json:"Status"`
+//		} `json:"TaskEvent"`
+//	}
+//
+//	type Task struct {
+//		TaskData struct {
+//			TaskDetails struct {
+//				ID                    string `json:"ID"`
+//				TaskType              string `json:"TaskType"`
+//				Name                  string `json:"Name"`
+//				Status                string `json:"Status"`
+//				ActualOwner           string `json:"ActualOwner"`
+//				CreatedTime           string `json:"CreatedTime"`
+//				CreatedBy             string `json:"CreatedBy"`
+//				ActivationTime        string `json:"ActivationTime"`
+//				LastModifiedTime      string `json:"LastModifiedTime"`
+//				RenderingMethodExists string `json:"RenderingMethodExists"`
+//			} `json:"TaskDetails"`
+//			Description string     `json:"Description"`
+//			Input       InputPart  `json:"Input"`
+//			Output      OutputPart `json:"Output"`
+//		} `json:"TaskData"`
+//		TaskEventHistory TaskEventsHistory `json:"TaskEventHistory"`
+//	}
 type XDWWorkflowDocument struct {
-	XMLName                        xml.Name              `xml:"XDW.WorkflowDocument"`
-	Hl7                            string                `xml:"hl7,attr"`
-	WsHt                           string                `xml:"ws-ht,attr"`
-	Xdw                            string                `xml:"xdw,attr"`
-	Xsi                            string                `xml:"xsi,attr"`
-	SchemaLocation                 string                `xml:"schemaLocation,attr"`
-	ID                             ID                    `xml:"id"`
-	EffectiveTime                  EffectiveTime         `xml:"effectiveTime"`
-	ConfidentialityCode            ConfidentialityCode   `xml:"confidentialityCode"`
-	Patient                        PatientID             `xml:"patient"`
-	Author                         Author                `xml:"author"`
-	WorkflowInstanceId             string                `xml:"workflowInstanceId"`
-	WorkflowDocumentSequenceNumber string                `xml:"workflowDocumentSequenceNumber"`
-	WorkflowStatus                 string                `xml:"workflowStatus"`
-	WorkflowStatusHistory          WorkflowStatusHistory `xml:"workflowStatusHistory"`
-	WorkflowDefinitionReference    string                `xml:"workflowDefinitionReference"`
-	TaskList                       TaskList              `xml:"TaskList"`
+	XMLName                        xml.Name              `xml:"XDW.WorkflowDocument" json:"XMLName"`
+	Hl7                            string                `xml:"hl7,attr" json:"Hl7"`
+	WsHt                           string                `xml:"ws-ht,attr" json:"WsHt"`
+	Xdw                            string                `xml:"xdw,attr" json:"Xdw"`
+	Xsi                            string                `xml:"xsi,attr" json:"Xsi"`
+	SchemaLocation                 string                `xml:"schemaLocation,attr" json:"SchemaLocation"`
+	ID                             ID                    `xml:"id" json:"ID"`
+	EffectiveTime                  EffectiveTime         `xml:"effectiveTime" json:"EffectiveTime"`
+	ConfidentialityCode            ConfidentialityCode   `xml:"confidentialityCode" json:"ConfidentialityCode"`
+	Patient                        ID                    `xml:"patient" json:"Patient"`
+	Author                         Author                `xml:"author" json:"Author"`
+	WorkflowInstanceId             string                `xml:"workflowInstanceId" json:"WorkflowInstanceId"`
+	WorkflowDocumentSequenceNumber string                `xml:"workflowDocumentSequenceNumber" json:"WorkflowDocumentSequenceNumber"`
+	WorkflowStatus                 string                `xml:"workflowStatus" json:"WorkflowStatus"`
+	WorkflowStatusHistory          WorkflowStatusHistory `xml:"workflowStatusHistory" json:"WorkflowStatusHistory"`
+	WorkflowDefinitionReference    string                `xml:"workflowDefinitionReference" json:"WorkflowDefinitionReference"`
+	TaskList                       TaskList              `xml:"TaskList" json:"TaskList"`
 }
 type ConfidentialityCode struct {
-	Code string `xml:"code,attr"`
+	Code string `xml:"code,attr" json:"Code"`
 }
 type EffectiveTime struct {
-	Value string `xml:"value,attr"`
-}
-type PatientID struct {
-	ID ID `xml:"id"`
+	Value string `xml:"value,attr" json:"Value"`
 }
 type Author struct {
-	AssignedAuthor AssignedAuthor `xml:"assignedAuthor"`
+	AssignedAuthor AssignedAuthor `xml:"assignedAuthor" json:"AssignedAuthor"`
 }
 type AssignedAuthor struct {
-	ID             ID             `xml:"id"`
-	AssignedPerson AssignedPerson `xml:"assignedPerson"`
+	ID             ID             `xml:"id" json:"ID"`
+	AssignedPerson AssignedPerson `xml:"assignedPerson" json:"AssignedPerson"`
 }
 type ID struct {
-	Root                   string `xml:"root,attr"`
-	Extension              string `xml:"extension,attr"`
-	AssigningAuthorityName string `xml:"assigningAuthorityName,attr"`
+	Root                   string `xml:"root,attr" json:"Root"`
+	Extension              string `xml:"extension,attr" json:"Extension"`
+	AssigningAuthorityName string `xml:"assigningAuthorityName,attr" json:"AssigningAuthorityName"`
 }
 type AssignedPerson struct {
-	Name Name `xml:"name"`
+	Name Name `xml:"name" json:"Name"`
 }
 type Name struct {
-	Family string `xml:"family"`
-	Prefix string `xml:"prefix"`
+	Family string `xml:"family" json:"Family"`
+	Prefix string `xml:"prefix" json:"Prefix"`
 }
 type WorkflowStatusHistory struct {
-	DocumentEvent []DocumentEvent `xml:"documentEvent"`
+	DocumentEvent []DocumentEvent `xml:"documentEvent" json:"DocumentEvent"`
 }
 type TaskList struct {
-	XDWTask []XDWTask `xml:"XDWTask"`
+	XDWTask []XDWTask `xml:"XDWTask" json:"Task"`
 }
 type XDWTask struct {
-	TaskData         TaskData         `xml:"taskData"`
-	TaskEventHistory TaskEventHistory `xml:"taskEventHistory"`
+	TaskData         TaskData         `xml:"taskData" json:"TaskData"`
+	TaskEventHistory TaskEventHistory `xml:"taskEventHistory" json:"TaskEventHistory"`
 }
 type TaskData struct {
-	TaskDetails TaskDetails `xml:"taskDetails"`
-	Description string      `xml:"description"`
-	Input       []Input     `xml:"input"`
-	Output      []Output    `xml:"output"`
+	TaskDetails TaskDetails `xml:"taskDetails" json:"TaskDetails"`
+	Description string      `xml:"description" json:"Description"`
+	Input       []Input     `xml:"input" json:"Input"`
+	Output      []Output    `xml:"output" json:"Output"`
 }
 type TaskDetails struct {
-	ID                    string `xml:"id"`
-	TaskType              string `xml:"taskType"`
-	Name                  string `xml:"name"`
-	Status                string `xml:"status"`
-	ActualOwner           string `xml:"actualOwner"`
-	CreatedTime           string `xml:"createdTime"`
-	CreatedBy             string `xml:"createdBy"`
-	ActivationTime        string `xml:"activationTime"`
-	LastModifiedTime      string `xml:"lastModifiedTime"`
-	RenderingMethodExists string `xml:"renderingMethodExists"`
+	ID                    string `xml:"id" json:"ID"`
+	TaskType              string `xml:"taskType" json:"TaskType"`
+	Name                  string `xml:"name" json:"Name"`
+	Status                string `xml:"status" json:"Status"`
+	ActualOwner           string `xml:"actualOwner" json:"ActualOwner"`
+	CreatedTime           string `xml:"createdTime" json:"CreatedTime"`
+	CreatedBy             string `xml:"createdBy" json:"CreatedBy"`
+	ActivationTime        string `xml:"activationTime" json:"ActivationTime"`
+	LastModifiedTime      string `xml:"lastModifiedTime" json:"LastModifiedTime"`
+	RenderingMethodExists string `xml:"renderingMethodExists" json:"RenderingMethodExists"`
 }
 type TaskEventHistory struct {
-	TaskEvent []TaskEvent `xml:"taskEvent"`
+	TaskEvent []TaskEvent `xml:"taskEvent" json:"TaskEvent"`
 }
 type AttachmentInfo struct {
-	Identifier      string `xml:"identifier"`
-	Name            string `xml:"name"`
-	AccessType      string `xml:"accessType"`
-	ContentType     string `xml:"contentType"`
-	ContentCategory string `xml:"contentCategory"`
-	AttachedTime    string `xml:"attachedTime"`
-	AttachedBy      string `xml:"attachedBy"`
-	HomeCommunityId string `xml:"homeCommunityId"`
+	Identifier      string `xml:"identifier" json:"Identifier"`
+	Name            string `xml:"name" json:"Name"`
+	AccessType      string `xml:"accessType" json:"AccessType"`
+	ContentType     string `xml:"contentType" json:"ContentType"`
+	ContentCategory string `xml:"contentCategory" json:"ContentCategory"`
+	AttachedTime    string `xml:"attachedTime" json:"AttachedTime"`
+	AttachedBy      string `xml:"attachedBy" json:"AttachedBy"`
+	HomeCommunityId string `xml:"homeCommunityId" json:"HomeCommunityId"`
 }
 type Part struct {
-	Name           string         `xml:"name,attr"`
-	AttachmentInfo AttachmentInfo `xml:"attachmentInfo"`
+	Name           string         `xml:"name,attr" json:"Name"`
+	AttachmentInfo AttachmentInfo `xml:"attachmentInfo" json:"AttachmentInfo"`
 }
 type Output struct {
-	Part Part `xml:"part"`
+	Part Part `xml:"part" json:"Part"`
 }
 type Input struct {
-	Part Part `xml:"part"`
+	Part Part `xml:"part" json:"Part"`
 }
 type DocumentEvent struct {
-	EventTime           string `xml:"eventTime"`
-	EventType           string `xml:"eventType"`
-	TaskEventIdentifier string `xml:"taskEventIdentifier"`
-	Author              string `xml:"author"`
-	PreviousStatus      string `xml:"previousStatus"`
-	ActualStatus        string `xml:"actualStatus"`
+	EventTime           string `xml:"eventTime" json:"EventTime"`
+	EventType           string `xml:"eventType" json:"EventType"`
+	TaskEventIdentifier string `xml:"taskEventIdentifier" json:"TaskEventIdentifier"`
+	Author              string `xml:"author" json:"Author"`
+	PreviousStatus      string `xml:"previousStatus" json:"PreviousStatus"`
+	ActualStatus        string `xml:"actualStatus" json:"ActualStatus"`
 }
 type TaskEvent struct {
-	ID         string `xml:"id"`
-	EventTime  string `xml:"eventTime"`
-	Identifier string `xml:"identifier"`
-	EventType  string `xml:"eventType"`
-	Status     string `xml:"status"`
+	ID         string `xml:"id" json:"ID"`
+	EventTime  string `xml:"eventTime" json:"EventTime"`
+	Identifier string `xml:"identifier" json:"Identifier"`
+	EventType  string `xml:"eventType" json:"EventType"`
+	Status     string `xml:"status" json:"Status"`
 }
 
 // sort interface for Document Events
@@ -318,7 +439,7 @@ func (i *Transaction) ContentUpdater() error {
 			log.Println(err.Error())
 			return err
 		}
-		if err := xml.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
+		if err := json.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
 			log.Println(err.Error())
 			return err
 		}
@@ -514,7 +635,7 @@ func (i *Transaction) updateWorkflow() error {
 		Version: i.XDWVersion,
 		Status:  i.XDWDocument.WorkflowStatus,
 	}
-	xdwDocBytes, _ := xml.MarshalIndent(i.XDWDocument, "", "  ")
+	xdwDocBytes, _ := json.MarshalIndent(i.XDWDocument, "", "  ")
 	wf.XDW_Doc = string(xdwDocBytes)
 	wfs.Workflows = append(wfs.Workflows, wf)
 	if err = tukdbint.NewDBEvent(&wfs); err != nil {
@@ -591,9 +712,9 @@ func (i *Transaction) createWorkflow() {
 	i.XDWDocument.ID.AssigningAuthorityName = strings.ToUpper(i.Org)
 	i.XDWDocument.EffectiveTime.Value = effectiveTime
 	i.XDWDocument.ConfidentialityCode.Code = i.XDWDefinition.Confidentialitycode
-	i.XDWDocument.Patient.ID.Root = patoid
-	i.XDWDocument.Patient.ID.Extension = i.NHS_ID
-	i.XDWDocument.Patient.ID.AssigningAuthorityName = "NHS"
+	i.XDWDocument.Patient.Root = patoid
+	i.XDWDocument.Patient.Extension = i.NHS_ID
+	i.XDWDocument.Patient.AssigningAuthorityName = "NHS"
 	i.XDWDocument.Author.AssignedAuthor.ID.Root = authoid
 	i.XDWDocument.Author.AssignedAuthor.ID.Extension = strings.ToUpper(i.Org)
 	i.XDWDocument.Author.AssignedAuthor.ID.AssigningAuthorityName = authoid
@@ -656,7 +777,7 @@ func (i *Transaction) createWorkflow() {
 	docevent.EventType = tukcnst.CREATED
 	docevent.ActualStatus = tukcnst.OPEN
 	i.XDWDocument.WorkflowStatusHistory.DocumentEvent = append(i.XDWDocument.WorkflowStatusHistory.DocumentEvent, docevent)
-	i.Response, _ = xml.MarshalIndent(i.XDWDocument, "", "  ")
+	i.Response, _ = json.MarshalIndent(i.XDWDocument, "", "  ")
 	i.XDWVersion = 0
 	log.Printf("%s Created new %s Workflow for Patient %s", i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Family, i.XDWDocument.WorkflowDefinitionReference, i.NHS_ID)
 }
@@ -671,7 +792,7 @@ func (i *Transaction) persistWorkflow() error {
 		Version: i.XDWVersion,
 		Status:  i.XDWDocument.WorkflowStatus,
 	}
-	xdwDocBytes, _ := xml.MarshalIndent(i.XDWDocument, "", "  ")
+	xdwDocBytes, _ := json.MarshalIndent(i.XDWDocument, "", "  ")
 	xdwDefBytes, _ := json.Marshal(i.XDWDefinition)
 	wf.XDW_Doc = string(xdwDocBytes)
 	wf.XDW_Def = string(xdwDefBytes)
@@ -731,7 +852,7 @@ func (i *Transaction) SetXDWStates() error {
 	var err error
 	for _, wf := range i.Workflows.Workflows {
 		if len(wf.XDW_Doc) > 0 {
-			if err = xml.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
+			if err = json.Unmarshal([]byte(wf.XDW_Doc), &i.XDWDocument); err != nil {
 				log.Println(err.Error())
 				return err
 			}
@@ -739,7 +860,7 @@ func (i *Transaction) SetXDWStates() error {
 				log.Println(err.Error())
 				return err
 			}
-			log.Printf("Setting %s Workflow state for Patient %s", i.XDWDocument.WorkflowDefinitionReference, i.XDWDocument.Patient.ID.Extension)
+			log.Printf("Setting %s Workflow state for Patient %s", i.XDWDocument.WorkflowDefinitionReference, i.XDWDocument.Patient.Extension)
 			state := tukdbint.Workflowstate{}
 			state.Created = wf.Created
 			state.Status = wf.Status
