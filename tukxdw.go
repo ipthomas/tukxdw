@@ -24,37 +24,32 @@ type Interface interface {
 	execute() error
 }
 type Transaction struct {
-	Actor            string
-	User             string
-	Org              string
-	Role             string
-	Pathway          string
-	Expression       string
-	NHS_ID           string
-	Task_ID          int
-	XDWVersion       int
-	Status           string
-	DSUB_BrokerURL   string
-	DSUB_ConsumerURL string
-	Request          []byte
-	Response         []byte
-	Dashboard        Dashboard
-	XDWDefinition    WorkflowDefinition
-	XDSDocumentMeta  XDSDocumentMeta
-	XDWDocument      XDWWorkflowDocument
-	XDWState         tukdbint.WorkflowStates
-	Workflows        tukdbint.Workflows
-	XDWEvents        tukdbint.Events
+	Actor           string
+	User            string
+	Org             string
+	Role            string
+	Pathway         string
+	Expression      string
+	NHS_ID          string
+	Task_ID         int
+	XDWVersion      int
+	Status          string
+	Request         []byte
+	Response        []byte
+	ServiceURL      ServiceURL
+	Dashboard       Dashboard
+	XDWDefinition   WorkflowDefinition
+	XDSDocumentMeta XDSDocumentMeta
+	XDWDocument     XDWWorkflowDocument
+	XDWState        tukdbint.WorkflowStates
+	Workflows       tukdbint.Workflows
+	XDWEvents       tukdbint.Events
 }
-type XDWTaskState struct {
-	TaskID              int
-	Created             string
-	CompleteBy          string
-	Status              string
-	IsOverdue           bool
-	LatestTaskEventTime time.Time
-	TaskDuration        time.Duration
-	PrettyTaskDuration  string
+type ServiceURL struct {
+	DSUB_Broker    string
+	DSUB_Consumer  string
+	Event_Consumer string
+	HTML_Creator   string
 }
 type Dashboard struct {
 	Total        int
@@ -653,9 +648,7 @@ func (i *Transaction) ContentCreator() error {
 	if err = i.loadWorkflowDefinition(); err == nil {
 		if err = i.deprecateWorkflow(); err == nil {
 			i.createWorkflow()
-			if err = i.persistWorkflow(); err == nil {
-				err = i.persistWorkflowState()
-			}
+			err = i.persistWorkflow()
 		}
 	}
 	if err != nil {
@@ -684,11 +677,12 @@ func (i *Transaction) deprecateWorkflow() error {
 	wfs := tukdbint.Workflows{Action: tukcnst.DEPRECATE}
 	wf := tukdbint.Workflow{XDW_Key: i.Pathway + i.NHS_ID}
 	wfs.Workflows = append(wfs.Workflows, wf)
+	log.Printf("Deprecating any current %s Workflow for NHS ID %s", i.Pathway, i.NHS_ID)
 	if err = tukdbint.NewDBEvent(&wfs); err == nil {
-		log.Printf("Deprecating any current %s Workflow events for NHS ID %s", i.Pathway, i.NHS_ID)
 		evs := tukdbint.Events{Action: tukcnst.DEPRECATE}
 		ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID}
 		evs.Events = append(evs.Events, ev)
+		log.Printf("Deprecating any current %s Workflow events for NHS ID %s", i.Pathway, i.NHS_ID)
 		if err = tukdbint.NewDBEvent(&evs); err != nil {
 			log.Println(err.Error())
 		}
@@ -696,7 +690,7 @@ func (i *Transaction) deprecateWorkflow() error {
 	return err
 }
 func (i *Transaction) createWorkflow() {
-	i.Expression = "Create Task"
+	i.Expression = "Create_Workflow"
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
@@ -805,30 +799,31 @@ func (i *Transaction) persistWorkflow() error {
 	i.Workflows.LastInsertId = wfs.LastInsertId
 	return err
 }
-func (i *Transaction) persistWorkflowState() error {
-	states := tukdbint.WorkflowStates{Action: tukcnst.INSERT}
-	state := tukdbint.Workflowstate{
-		WorkflowId:    i.Workflows.LastInsertId,
-		Pathway:       i.Pathway,
-		NHSId:         i.NHS_ID,
-		Version:       i.XDWVersion,
-		Published:     false,
-		Created:       i.XDWDocument.EffectiveTime.Value,
-		CreatedBy:     i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Family + " " + i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Prefix,
-		Status:        i.XDWDocument.WorkflowStatus,
-		CompleteBy:    i.GetWorkflowCompleteByDate().String(),
-		LastUpdate:    i.XDWDocument.EffectiveTime.Value,
-		Owner:         "",
-		Overdue:       "FALSE",
-		Escalated:     "FALSE",
-		TargetMet:     "TRUE",
-		InProgress:    "FALSE",
-		Duration:      "0 mins",
-		TimeRemaining: i.GetWorkflowTimeRemaining(),
-	}
-	states.Workflowstate = append(states.Workflowstate, state)
-	return tukdbint.NewDBEvent(&states)
-}
+
+// func (i *Transaction) persistWorkflowState() error {
+// 	states := tukdbint.WorkflowStates{Action: tukcnst.INSERT}
+// 	state := tukdbint.Workflowstate{
+// 		WorkflowId:    i.Workflows.LastInsertId,
+// 		Pathway:       i.Pathway,
+// 		NHSId:         i.NHS_ID,
+// 		Version:       i.XDWVersion,
+// 		Published:     false,
+// 		Created:       i.XDWDocument.EffectiveTime.Value,
+// 		CreatedBy:     i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Family + " " + i.XDWDocument.Author.AssignedAuthor.AssignedPerson.Name.Prefix,
+// 		Status:        i.XDWDocument.WorkflowStatus,
+// 		CompleteBy:    i.GetWorkflowCompleteByDate().String(),
+// 		LastUpdate:    i.XDWDocument.EffectiveTime.Value,
+// 		Owner:         "",
+// 		Overdue:       "FALSE",
+// 		Escalated:     "FALSE",
+// 		TargetMet:     "TRUE",
+// 		InProgress:    "FALSE",
+// 		Duration:      "0 mins",
+// 		TimeRemaining: i.GetWorkflowTimeRemaining(),
+// 	}
+// 	states.Workflowstate = append(states.Workflowstate, state)
+// 	return tukdbint.NewDBEvent(&states)
+// }
 
 // IHE XDW Content Consumer
 func (i *Transaction) ContentConsumer() error {
@@ -1321,8 +1316,8 @@ func (i *Transaction) registerWorkflowDef() error {
 	log.Printf("Found %v potential DSUB Broker Subscriptions - %s", len(dsubSubs), dsubSubs)
 	if len(dsubSubs) > 0 {
 		event.Action = tukcnst.CREATE
-		event.BrokerURL = i.DSUB_BrokerURL
-		event.ConsumerURL = i.DSUB_ConsumerURL
+		event.BrokerURL = i.ServiceURL.DSUB_Broker
+		event.ConsumerURL = i.ServiceURL.DSUB_Consumer
 		for expression := range dsubSubs {
 			event.Expressions = append(event.Expressions, expression)
 		}
