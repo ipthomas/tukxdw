@@ -1,5 +1,7 @@
 github.com/go-sql-driver/mysql v1.7.0 h1:ueSltNNllEqE3qcWBTD0iQd3IpL/6U+mJxLkazJ7YPc=
 github.com/go-sql-driver/mysql v1.7.0/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
+github.com/go-sql-driver/mysql v1.7.1 h1:lUIinVbN1DY0xBg0eMOzmmtGoHwWBbvnWubQUrtU8EI=
+github.com/go-sql-driver/mysql v1.7.1/go.mod h1:OXbVy3sEdcQ2Doequ6Z5BW6fXNQTmx+9S1MCJN5yJMI=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/ipthomas/tukcnst v1.3.6 h1:tOx8U/phZdsNBD9ulWYM2OjYFxisJTgAnldQspYr6wg=
@@ -24,6 +26,8 @@ github.com/ipthomas/tukdbint v1.3.29 h1:7DPcIbrRhMuI05sg9QN1kaTM5AoqeyZaQnUTh8wM
 github.com/ipthomas/tukdbint v1.3.29/go.mod h1:6MtJ3GCUJ8HUjaNoDka6uj3IyKkHybBsHVzdwRJxjmg=
 github.com/ipthomas/tukdbint v1.3.30 h1:KqtjfjfgOrbRYfpnuOUtlE7Ae8IfMpbEbX3y0xLBF9Q=
 github.com/ipthomas/tukdbint v1.3.30/go.mod h1:S6x8vsDHsMUsZ79Qzh4iG3lUzes2iFdgtsBOn4wDMWQ=
+github.com/ipthomas/tukdbint v1.3.31 h1:jHjB6pRuEE4yoHnh5s8X+hgaunWuTvInO3rUk0pmmso=
+github.com/ipthomas/tukdbint v1.3.31/go.mod h1:S6x8vsDHsMUsZ79Qzh4iG3lUzes2iFdgtsBOn4wDMWQ=
 github.com/ipthomas/tukdsub v1.3.16 h1:g8jAlDcYcH8++gDFeKmDT8lsQIv6E+eY8sk4Sl52zKM=
 github.com/ipthomas/tukdsub v1.3.16/go.mod h1:AhgX1Ee8nvxSKGKTkefZQFLl4hKoL2WLq8bihBljfpI=
 github.com/ipthomas/tukdsub v1.3.17 h1:mPSACQlUS5gP8tEYXkw8WvCtL1AHkmLsojtTC/DB3VU=
@@ -44,6 +48,8 @@ github.com/ipthomas/tukdsub v1.3.25 h1:F7q+HFM7c/gXAgwDhr5EEX2JkErWfndPP0Bh2njnp
 github.com/ipthomas/tukdsub v1.3.25/go.mod h1:XwO0e3W/qwFb9TMZEBw3qA6WG/UuzXX5MC3/HY+Zifw=
 github.com/ipthomas/tukdsub v1.3.26 h1:FpUSanE97757iyKhCo6d8KTWywj3v1aVJG+28QfTbcg=
 github.com/ipthomas/tukdsub v1.3.26/go.mod h1:49qE6xPoAnTwXCs+HGoUpH7haVaURoL22/0TXZj3W5c=
+github.com/ipthomas/tukdsub v1.3.28 h1:qMWua7hX2oTMSEZ7dB2fvl1LLYNTQ3a3a+8EvRebkn0=
+github.com/ipthomas/tukdsub v1.3.28/go.mod h1:8bCdwdf7JDLE4mSQfBRrVEVF5+i7piJLdfSNcv6YOwo=
 github.com/ipthomas/tukhttp v1.3.8 h1:c0vlB/Dfmeun+vW5KH6jwLgLsbuq0Wz34uvbcJ1qPwI=
 github.com/ipthomas/tukhttp v1.3.8/go.mod h1:uf0AQ8gBG2Exm0OgXSJLFUcJ4Sg1WyplbeoMkiZvLUY=
 github.com/ipthomas/tukhttp v1.3.9 h1:qQCpOjjgULB+ZhN8Eso4d/jJln5THPQcNfkUt/pVOiM=
@@ -52,6 +58,8 @@ github.com/ipthomas/tukhttp v1.3.10 h1:BqDL2htGAm2H6nOs0JXCcZ9p4HUIYVWCGq3fn5Pz8
 github.com/ipthomas/tukhttp v1.3.10/go.mod h1:PIStBCGEHy5VvicxQq4RMkVPDhOnez1AUnEha/X+zW0=
 github.com/ipthomas/tukhttp v1.3.11 h1:AlKAeTnr4H1oXbx9G4xj76tJofoBQIYggXOPC8c9fds=
 github.com/ipthomas/tukhttp v1.3.11/go.mod h1:PIStBCGEHy5VvicxQq4RMkVPDhOnez1AUnEha/X+zW0=
+github.com/ipthomas/tukhttp v1.3.12 h1:fSVFQ1X3aEYxsg7xcSCrWpAg7d+4bBuJxVlLCR9Bv4Y=
+github.com/ipthomas/tukhttp v1.3.12/go.mod h1:PIStBCGEHy5VvicxQq4RMkVPDhOnez1AUnEha/X+zW0=
 github.com/ipthomas/tukpdq v1.3.9 h1:IwCJ/uWHuLVG9oNSEHxUtoTUTJdpSgS/O3HECgF7UOA=
 github.com/ipthomas/tukpdq v1.3.9/go.mod h1:jJXkIvVxjS9ZJF/92L3hWl9+WZNZD/+jijx6EDXI/7E=
 github.com/ipthomas/tukpdq v1.3.10 h1:65JwcTY5QLYHKn6x2SmtZzZMtFosQT+DhUrztxdJYig=
