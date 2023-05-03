@@ -544,7 +544,7 @@ func (i *Transaction) loadWorkflowDefinition() error {
 			log.Printf("Loaded XDW definition for Pathway %s", i.Pathway)
 		}
 	} else {
-		err = errors.New("no xdw definition config found")
+		err = errors.New("no xdw definition registered for workflow" + i.Pathway + " you need to register the " + i.Pathway + " workflow definition before you can create a new workflow")
 		log.Println(err.Error())
 	}
 	return err
