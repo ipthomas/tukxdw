@@ -602,7 +602,7 @@ func (i *Transaction) createWorkflow() {
 
 	docevent := DocumentEvent{}
 	docevent.Author = i.User + " " + i.Role
-	docevent.TaskEventIdentifier = "0"
+	docevent.TaskEventIdentifier = tevidstr
 	docevent.EventTime = effectiveTime
 	docevent.EventType = tukcnst.XDW_TASKEVENTTYPE_CREATED
 	docevent.ActualStatus = tukcnst.OPEN
