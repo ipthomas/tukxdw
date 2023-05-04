@@ -606,7 +606,7 @@ func (i *Transaction) createWorkflow() {
 	docevent.Author = i.User + " " + i.Role
 	docevent.TaskEventIdentifier = "0"
 	docevent.EventTime = effectiveTime
-	docevent.EventType = tukcnst.XDW_TASKEVENTTYPE_CREATED
+	docevent.EventType = "CREATE_WORKFLOW"
 	docevent.ActualStatus = tukcnst.OPEN
 	i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
 
