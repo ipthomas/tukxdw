@@ -427,10 +427,10 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 
 	if i.IsWorkflowCompleteBehaviorMet() {
 		i.WorkflowDocument.WorkflowStatus = tukcnst.CLOSED
-		tevidstr := strconv.Itoa(int(i.newEventID("WORKFLOW_COMPLETED", i.XDWVersion)))
+		i.newEventID("WORKFLOW_COMPLETED", i.XDWVersion)
 		docevent := DocumentEvent{}
 		docevent.Author = i.User
-		docevent.TaskEventIdentifier = tevidstr
+		docevent.TaskEventIdentifier = "0"
 		docevent.EventTime = tukutil.Time_Now()
 		docevent.EventType = "WORKFLOW_COMPLETED"
 		docevent.PreviousStatus = i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent[len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)-1].ActualStatus
