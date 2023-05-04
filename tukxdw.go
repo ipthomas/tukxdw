@@ -31,9 +31,11 @@ type Transaction struct {
 	Pathway            string
 	Expression         string
 	NHS_ID             string
+	XDS_ID             string
 	Task_ID            int
 	XDWVersion         int
 	Status             string
+	AttachmentInfo     string
 	Request            []byte
 	Response           []byte
 	ServiceURL         ServiceURL
@@ -875,7 +877,7 @@ func (i *Transaction) GetLatestWorkflowEventTime() time.Time {
 func (i *Transaction) newEventID(eventType string, vers int) int64 {
 	ev := tukdbint.Event{
 		EventType:          eventType,
-		DocName:            i.WorkflowDocument.WorkflowDefinitionReference + "-" + i.NHS_ID,
+		DocName:            i.AttachmentInfo,
 		ClassCode:          i.XDSDocumentMeta.Classcode,
 		ConfCode:           i.XDSDocumentMeta.Confcode,
 		FormatCode:         i.XDSDocumentMeta.Formatcode,
@@ -883,7 +885,7 @@ func (i *Transaction) newEventID(eventType string, vers int) int64 {
 		PracticeCode:       i.XDSDocumentMeta.Practicesettingcode,
 		Expression:         i.Expression,
 		Authors:            i.WorkflowDocument.Author.AssignedAuthor.AssignedPerson.Name.Prefix + " " + i.WorkflowDocument.Author.AssignedAuthor.AssignedPerson.Name.Family,
-		XdsPid:             "",
+		XdsPid:             i.XDS_ID,
 		XdsDocEntryUid:     i.WorkflowDocument.ID.Extension,
 		RepositoryUniqueId: i.XDSDocumentMeta.Repositoryuniqueid,
 		NhsId:              i.NHS_ID,
