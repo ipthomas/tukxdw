@@ -432,7 +432,7 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 		docevent.Author = i.User
 		docevent.TaskEventIdentifier = tevidstr
 		docevent.EventTime = tukutil.Time_Now()
-		docevent.EventType = tukcnst.COMPLETE
+		docevent.EventType = "WORKFLOW_COMPLETED"
 		docevent.PreviousStatus = i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent[len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)-1].ActualStatus
 		docevent.ActualStatus = tukcnst.COMPLETE
 		i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
