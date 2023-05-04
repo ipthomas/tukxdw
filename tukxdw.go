@@ -573,7 +573,6 @@ func (i *Transaction) createWorkflow() {
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
-	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_WORKFLOW", i.XDWVersion)))
 
 	var effectiveTime = tukutil.Time_Now()
 	i.WorkflowDocument.Xdw = tukcnst.XDWNameSpace
@@ -599,6 +598,7 @@ func (i *Transaction) createWorkflow() {
 	i.WorkflowDocument.WorkflowDocumentSequenceNumber = "1"
 	i.WorkflowDocument.WorkflowStatus = tukcnst.OPEN
 	i.WorkflowDocument.WorkflowDefinitionReference = strings.ToUpper(i.Pathway)
+	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_WORKFLOW", i.XDWVersion)))
 
 	docevent := DocumentEvent{}
 	docevent.Author = i.User + " " + i.Role
