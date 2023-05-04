@@ -425,7 +425,7 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 
 	if i.IsWorkflowCompleteBehaviorMet() {
 		i.WorkflowDocument.WorkflowStatus = tukcnst.CLOSED
-		tevidstr := strconv.Itoa(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_COMPLETE, i.XDWVersion)))
+		tevidstr := strconv.Itoa(int(i.newEventID("WORKFLOW_COMPLETED", i.XDWVersion)))
 		docevent := DocumentEvent{}
 		docevent.Author = i.User
 		docevent.TaskEventIdentifier = tevidstr
@@ -573,7 +573,7 @@ func (i *Transaction) createWorkflow() {
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
-	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_CREATED, i.XDWVersion)))
+	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_WORKFLOW", i.XDWVersion)))
 
 	var effectiveTime = tukutil.Time_Now()
 	i.WorkflowDocument.Xdw = tukcnst.XDWNameSpace
@@ -602,7 +602,7 @@ func (i *Transaction) createWorkflow() {
 
 	docevent := DocumentEvent{}
 	docevent.Author = i.User + " " + i.Role
-	docevent.TaskEventIdentifier = tevidstr
+	docevent.TaskEventIdentifier = "0"
 	docevent.EventTime = effectiveTime
 	docevent.EventType = tukcnst.XDW_TASKEVENTTYPE_CREATED
 	docevent.ActualStatus = tukcnst.OPEN
@@ -611,7 +611,7 @@ func (i *Transaction) createWorkflow() {
 	for _, t := range i.WorkflowDefinition.Tasks {
 		i.Expression = t.Name
 		i.Task_ID = tukutil.GetIntFromString(t.ID)
-		tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_CREATED, i.XDWVersion)))
+		tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_TASK", i.XDWVersion)))
 		log.Printf("Creating Workflow Task ID - %v Name - %s", t.ID, t.Name)
 		task := XDWTask{}
 		task.TaskData.TaskDetails.ID = t.ID
