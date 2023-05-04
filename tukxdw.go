@@ -308,6 +308,7 @@ func (i *Transaction) ContentUpdater() error {
 		}
 		log.Printf("Updating %s Workflow Version %v for NHS ID %s", wf.Pathway, wf.Version, wf.NHSId)
 
+		i.XDWVersion = wf.Version
 		if err := json.Unmarshal([]byte(wf.XDW_Def), &i.WorkflowDefinition); err != nil {
 			log.Println(err.Error())
 			return err
@@ -424,7 +425,7 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 
 	if i.IsWorkflowCompleteBehaviorMet() {
 		i.WorkflowDocument.WorkflowStatus = tukcnst.CLOSED
-		tevidstr := strconv.Itoa(int(i.newEventID()))
+		tevidstr := strconv.Itoa(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_COMPLETE, i.XDWVersion)))
 		docevent := DocumentEvent{}
 		docevent.Author = i.User
 		docevent.TaskEventIdentifier = tevidstr
@@ -572,6 +573,8 @@ func (i *Transaction) createWorkflow() {
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
+	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_CREATED, i.XDWVersion)))
+
 	var effectiveTime = tukutil.Time_Now()
 	i.WorkflowDocument.Xdw = tukcnst.XDWNameSpace
 	i.WorkflowDocument.Hl7 = tukcnst.HL7NameSpace
@@ -596,10 +599,19 @@ func (i *Transaction) createWorkflow() {
 	i.WorkflowDocument.WorkflowDocumentSequenceNumber = "1"
 	i.WorkflowDocument.WorkflowStatus = tukcnst.OPEN
 	i.WorkflowDocument.WorkflowDefinitionReference = strings.ToUpper(i.Pathway)
+
+	docevent := DocumentEvent{}
+	docevent.Author = i.User + " " + i.Role
+	docevent.TaskEventIdentifier = "0"
+	docevent.EventTime = effectiveTime
+	docevent.EventType = tukcnst.XDW_TASKEVENTTYPE_CREATED
+	docevent.ActualStatus = tukcnst.OPEN
+	i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
+
 	for _, t := range i.WorkflowDefinition.Tasks {
 		i.Expression = t.Name
 		i.Task_ID = tukutil.GetIntFromString(t.ID)
-		tevidstr := tukutil.GetStringFromInt(int(i.newEventID()))
+		tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_CREATED, i.XDWVersion)))
 		log.Printf("Creating Workflow Task ID - %v Name - %s", t.ID, t.Name)
 		task := XDWTask{}
 		task.TaskData.TaskDetails.ID = t.ID
@@ -642,13 +654,6 @@ func (i *Transaction) createWorkflow() {
 		i.WorkflowDocument.TaskList.XDWTask = append(i.WorkflowDocument.TaskList.XDWTask, task)
 		log.Printf("Set Workflow Task Event %s %s status to %s", t.ID, tev.EventType, tev.Status)
 	}
-	docevent := DocumentEvent{}
-	docevent.Author = i.User + " " + i.Role
-	docevent.TaskEventIdentifier = "1"
-	docevent.EventTime = effectiveTime
-	docevent.EventType = tukcnst.CREATED
-	docevent.ActualStatus = tukcnst.OPEN
-	i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
 	i.Response, _ = json.MarshalIndent(i.WorkflowDocument, "", "  ")
 	i.XDWVersion = 0
 	log.Printf("%s Created new %s Workflow for Patient %s", i.WorkflowDocument.Author.AssignedAuthor.AssignedPerson.Name.Family, i.WorkflowDocument.WorkflowDefinitionReference, i.NHS_ID)
@@ -867,8 +872,9 @@ func (i *Transaction) GetLatestWorkflowEventTime() time.Time {
 	}
 	return ltime
 }
-func (i *Transaction) newEventID() int64 {
+func (i *Transaction) newEventID(eventType string, vers int) int64 {
 	ev := tukdbint.Event{
+		EventType:          eventType,
 		DocName:            i.WorkflowDocument.WorkflowDefinitionReference + "-" + i.NHS_ID,
 		ClassCode:          i.XDSDocumentMeta.Classcode,
 		ConfCode:           i.XDSDocumentMeta.Confcode,
@@ -887,7 +893,7 @@ func (i *Transaction) newEventID() int64 {
 		Topic:              tukcnst.DSUB_TOPIC_TYPE_CODE,
 		Pathway:            i.Pathway,
 		Comments:           string(i.Request),
-		Version:            0,
+		Version:            vers,
 		TaskId:             i.Task_ID,
 	}
 	evs := tukdbint.Events{Action: tukcnst.INSERT}
