@@ -429,10 +429,10 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 		i.WorkflowDocument.WorkflowStatus = tukcnst.CLOSED
 		i.newEventID("WORKFLOW_COMPLETED", i.XDWVersion)
 		docevent := DocumentEvent{}
-		docevent.Author = i.User
+		docevent.Author = i.User + " " + i.Org + " " + i.Role
 		docevent.TaskEventIdentifier = "0"
 		docevent.EventTime = tukutil.Time_Now()
-		docevent.EventType = "WORKFLOW_COMPLETED"
+		docevent.EventType = "COMPLETED_WORKFLOW"
 		docevent.PreviousStatus = i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent[len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)-1].ActualStatus
 		docevent.ActualStatus = tukcnst.COMPLETE
 		i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
@@ -603,7 +603,7 @@ func (i *Transaction) createWorkflow() {
 	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_WORKFLOW", i.XDWVersion)))
 
 	docevent := DocumentEvent{}
-	docevent.Author = i.User + " " + i.Role
+	docevent.Author = i.User + " " + i.Org + " " + i.Role
 	docevent.TaskEventIdentifier = "0"
 	docevent.EventTime = effectiveTime
 	docevent.EventType = "CREATE_WORKFLOW"
