@@ -784,14 +784,11 @@ func (i *Transaction) SetXDWStates() error {
 
 	return err
 }
-
-func GetActiveWorkflowNames() []string {
-	var names []string
-	wfnames := tukdbint.GetActiveWorkflowNames()
-	for name := range wfnames {
-		names = append(names, name)
-	}
-	return names
+func (i *Transaction) GetRegisteredWorkflows() map[string]string {
+	return tukdbint.GetWorkflowDefinitionNames()
+}
+func GetActiveWorkflowNames() map[string]string {
+	return tukdbint.GetActiveWorkflowNames()
 }
 func GetTaskNotes(pwy string, nhsid string, taskid int, ver int) string {
 	return tukdbint.GetTaskNotes(pwy, nhsid, taskid, ver)
@@ -814,10 +811,6 @@ func (i *Transaction) IsTaskOverdue() bool {
 	}
 	log.Printf("Task %v IS overdue", i.Task_ID)
 	return true
-}
-func GetTaskCompleteByDate(xdwdoc WorkflowDocument, xdwdef WorkflowDefinition, task int) string {
-	trans := Transaction{WorkflowDocument: xdwdoc, WorkflowDefinition: xdwdef, Task_ID: task}
-	return strings.Split(trans.GetTaskCompleteByDate().String(), ".")[0]
 }
 func (i *Transaction) GetTaskCompleteByDate() time.Time {
 	if i.WorkflowDefinition.Tasks[i.Task_ID-1].CompleteByTime == "" {
