@@ -685,31 +685,6 @@ func (i *Transaction) persistWorkflow() error {
 	return err
 }
 
-// func (i *Transaction) persistWorkflowState() error {
-// 	states := tukdbint.WorkflowStates{Action: tukcnst.INSERT}
-// 	state := tukdbint.Workflowstate{
-// 		WorkflowId:    i.Workflows.LastInsertId,
-// 		Pathway:       i.Pathway,
-// 		NHSId:         i.NHS_ID,
-// 		Version:       i.XDWVersion,
-// 		Published:     false,
-// 		Created:       i.WorkflowDocument.EffectiveTime.Value,
-// 		CreatedBy:     i.WorkflowDocument.Author.AssignedAuthor.AssignedPerson.Name.Family + " " + i.WorkflowDocument.Author.AssignedAuthor.AssignedPerson.Name.Prefix,
-// 		Status:        i.WorkflowDocument.WorkflowStatus,
-// 		CompleteBy:    i.GetWorkflowCompleteByDate().String(),
-// 		LastUpdate:    i.WorkflowDocument.EffectiveTime.Value,
-// 		Owner:         "",
-// 		Overdue:       "FALSE",
-// 		Escalated:     "FALSE",
-// 		TargetMet:     "TRUE",
-// 		InProgress:    "FALSE",
-// 		Duration:      "0 mins",
-// 		TimeRemaining: i.GetWorkflowTimeRemaining(),
-// 	}
-// 	states.Workflowstate = append(states.Workflowstate, state)
-// 	return tukdbint.NewDBEvent(&states)
-// }
-
 // IHE XDW Content Consumer
 func (i *Transaction) ContentConsumer() error {
 	i.Workflows = tukdbint.Workflows{Action: tukcnst.SELECT}
@@ -758,8 +733,11 @@ func (i *Transaction) SetXDWStates() error {
 			state.TargetMet = "TRUE"
 			state.InProgress = "TRUE"
 			state.Duration = i.GetWorkflowDuration()
-			state.TimeRemaining = i.GetWorkflowTimeRemaining()
-
+			if state.Status == tukcnst.TUK_STATUS_CLOSED {
+				state.TimeRemaining = "0"
+			} else {
+				state.TimeRemaining = i.GetWorkflowTimeRemaining()
+			}
 			workflowStartTime := tukutil.GetTimeFromString(state.Created)
 			if i.IsWorkflowOverdue() {
 				i.Dashboard.TargetMissed = i.Dashboard.TargetMissed + 1
@@ -856,19 +834,17 @@ func (i *Transaction) GetWorkflowDuration() string {
 		we = i.GetLatestWorkflowEventTime()
 		log.Printf("Workflow is Complete. Latest Event Time was %s", we.String())
 	}
-	duration := we.Sub(ws)
+	duration := ws.Sub(ws)
 	log.Println("Duration - " + duration.String())
 	return tukutil.GetDuration(ws.String(), we.String())
 }
 func (i *Transaction) GetLatestWorkflowEventTime() time.Time {
 	var ltime = tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value)
-	for _, task := range i.WorkflowDocument.TaskList.XDWTask {
-		for _, taskevent := range task.TaskEventHistory.TaskEvent {
-			if taskevent.EventTime != "" {
-				etime := tukutil.GetTimeFromString(taskevent.EventTime)
-				if etime.After(ltime) {
-					ltime = etime
-				}
+	for _, docevent := range i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent {
+		if docevent.EventTime != "" {
+			etime := tukutil.GetTimeFromString(docevent.EventTime)
+			if etime.After(ltime) {
+				ltime = etime
 			}
 		}
 	}
