@@ -821,13 +821,14 @@ func (i *Transaction) GetTaskCompleteByDate() time.Time {
 func (i *Transaction) GetWorkflowDuration() string {
 	ws := tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value)
 	log.Printf("Workflow Started %s Status %s", ws.String(), i.WorkflowDocument.WorkflowStatus)
-	we := time.Now()
+	loc, _ := time.LoadLocation("Europe/London")
+	we := time.Now().In(loc)
 	log.Printf("Time Now %s", we.String())
 	if i.WorkflowDocument.WorkflowStatus == tukcnst.CLOSED {
 		we = i.GetLatestWorkflowEventTime()
 		log.Printf("Workflow is Complete. Latest Event Time was %s", we.String())
 	}
-	duration := ws.Sub(ws)
+	duration := we.Sub(ws)
 	log.Println("Duration - " + duration.String())
 	return tukutil.GetDuration(ws.String(), we.String())
 }
