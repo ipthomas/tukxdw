@@ -427,12 +427,12 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 
 	if i.IsWorkflowCompleteBehaviorMet() {
 		i.WorkflowDocument.WorkflowStatus = tukcnst.CLOSED
-		i.newEventID("WORKFLOW_COMPLETED", i.XDWVersion)
+		i.newEventID(tukcnst.XDW_TASKEVENTTYPE_WORKFLOW_COMPLETED, i.XDWVersion)
 		docevent := DocumentEvent{}
 		docevent.Author = i.User + " " + i.Org + " " + i.Role
 		docevent.TaskEventIdentifier = "0"
 		docevent.EventTime = tukutil.Time_Now()
-		docevent.EventType = "COMPLETED_WORKFLOW"
+		docevent.EventType = tukcnst.XDW_DOCEVENTTYPE_COMPLETED_WORKFLOW
 		docevent.PreviousStatus = i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent[len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)-1].ActualStatus
 		docevent.ActualStatus = tukcnst.COMPLETE
 		i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
@@ -571,7 +571,7 @@ func (i *Transaction) deprecateWorkflow() error {
 	return err
 }
 func (i *Transaction) createWorkflow() {
-	i.Expression = "Create_Workflow"
+	i.Expression = tukcnst.XDW_DOCEVENTTYPE_CREATE_WORKFLOW
 	var authoid = getLocalId(i.Org)
 	var patoid = tukcnst.NHS_OID_DEFAULT
 	var wfid = tukutil.Newid()
@@ -600,20 +600,20 @@ func (i *Transaction) createWorkflow() {
 	i.WorkflowDocument.WorkflowDocumentSequenceNumber = "1"
 	i.WorkflowDocument.WorkflowStatus = tukcnst.OPEN
 	i.WorkflowDocument.WorkflowDefinitionReference = strings.ToUpper(i.Pathway)
-	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_WORKFLOW", i.XDWVersion)))
+	var tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_DOCEVENTTYPE_CREATE_WORKFLOW, i.XDWVersion)))
 
 	docevent := DocumentEvent{}
 	docevent.Author = i.User + " " + i.Org + " " + i.Role
 	docevent.TaskEventIdentifier = "0"
 	docevent.EventTime = effectiveTime
-	docevent.EventType = "CREATE_WORKFLOW"
+	docevent.EventType = tukcnst.XDW_DOCEVENTTYPE_CREATE_WORKFLOW
 	docevent.ActualStatus = tukcnst.OPEN
 	i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
 
 	for _, t := range i.WorkflowDefinition.Tasks {
 		i.Expression = t.Name
 		i.Task_ID = tukutil.GetIntFromString(t.ID)
-		tevidstr = tukutil.GetStringFromInt(int(i.newEventID("CREATE_TASK", i.XDWVersion)))
+		tevidstr = tukutil.GetStringFromInt(int(i.newEventID(tukcnst.XDW_TASKEVENTTYPE_CREATE_TASK, i.XDWVersion)))
 		log.Printf("Creating Workflow Task ID - %v Name - %s", t.ID, t.Name)
 		task := XDWTask{}
 		task.TaskData.TaskDetails.ID = t.ID
