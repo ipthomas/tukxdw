@@ -700,6 +700,13 @@ func (i *Transaction) ContentConsumer() error {
 		log.Println(err.Error())
 		return err
 	}
+	i.XDWEvents = tukdbint.Events{Action: tukcnst.SELECT}
+	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion}
+	i.XDWEvents.Events = append(i.XDWEvents.Events, ev)
+	if err := tukdbint.NewDBEvent(&i.XDWEvents); err != nil {
+		log.Println(err.Error())
+		return err
+	}
 	return nil
 }
 func (i *Transaction) SetXDWStates() error {
