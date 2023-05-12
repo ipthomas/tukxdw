@@ -701,7 +701,7 @@ func (i *Transaction) ContentConsumer() error {
 		return err
 	}
 	i.XDWEvents = tukdbint.Events{Action: tukcnst.SELECT}
-	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion}
+	ev := tukdbint.Event{Pathway: i.Pathway, NhsId: i.NHS_ID, Version: i.XDWVersion, TaskId: -1}
 	i.XDWEvents.Events = append(i.XDWEvents.Events, ev)
 	if err := tukdbint.NewDBEvent(&i.XDWEvents); err != nil {
 		log.Println(err.Error())
