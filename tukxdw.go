@@ -553,7 +553,6 @@ func (i *Transaction) loadWorkflowDefinition() error {
 	return err
 }
 func (i *Transaction) deprecateWorkflow() error {
-	log.Printf("Deprecating any current %s Workflow for NHS ID %s", i.Pathway, i.NHS_ID)
 	var err error
 	wfs := tukdbint.Workflows{Action: tukcnst.DEPRECATE}
 	wf := tukdbint.Workflow{XDW_Key: i.Pathway + i.NHS_ID}
