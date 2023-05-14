@@ -834,9 +834,9 @@ func (i *Transaction) GetWorkflowDuration() string {
 		we = i.GetLatestWorkflowEventTime()
 		log.Printf("Workflow is Complete. Latest Event Time was %s", we.String())
 	}
-	duration := we.Sub(ws)
-	log.Println("Duration - " + duration.String())
-	return tukutil.GetDuration(ws.String(), we.String())
+	duration := tukutil.GetDuration(we.Sub(ws))
+	log.Println("Duration - " + duration)
+	return duration
 }
 func (i *Transaction) GetLatestWorkflowEventTime() time.Time {
 	var we = tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value)
