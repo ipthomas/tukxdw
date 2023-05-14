@@ -839,16 +839,18 @@ func (i *Transaction) GetWorkflowDuration() string {
 	return tukutil.GetDuration(ws.String(), we.String())
 }
 func (i *Transaction) GetLatestWorkflowEventTime() time.Time {
-	var ltime = tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value)
+	loc, _ := time.LoadLocation("Europe/London")
+	var etime = tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value).In(loc)
+
 	for _, docevent := range i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent {
 		if docevent.EventTime != "" {
-			etime := tukutil.GetTimeFromString(docevent.EventTime)
-			if etime.After(ltime) {
-				ltime = etime
+			doceventtime := tukutil.GetTimeFromString(docevent.EventTime).In(loc)
+			if doceventtime.After(etime) {
+				etime = doceventtime
 			}
 		}
 	}
-	return ltime
+	return etime
 }
 func (i *Transaction) newEventID(eventType string, vers int) int64 {
 	ev := tukdbint.Event{
