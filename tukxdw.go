@@ -51,15 +51,18 @@ type Transaction struct {
 	OverdueWorkflows   tukdbint.Workflows
 	EscalatedWorkflows tukdbint.Workflows
 	XDWEvents          tukdbint.Events
+	Subscriptions      tukdbint.Subscriptions
 }
 type ServiceURL struct {
-	DSUB_Broker    string
-	DSUB_Consumer  string
-	Event_Consumer string
-	XDW_Consumer   string
-	XDW_Creator    string
-	HTML_Creator   string
-	Service_Admin  string
+	DSUB_Broker      string
+	DSUB_Consumer    string
+	Event_Consumer   string
+	Event_Subscriber string
+	Event_Notifier   string
+	XDW_Consumer     string
+	XDW_Creator      string
+	HTML_Creator     string
+	Service_Admin    string
 }
 type Dashboard struct {
 	Total        int
