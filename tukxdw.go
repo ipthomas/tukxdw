@@ -1247,13 +1247,8 @@ func (i *Transaction) PersistXDWDefinition() error {
 	}
 	return err
 }
-func GetWorkflowDefinitionNames() []string {
-	var wfnames []string
-	names := tukdbint.GetWorkflowDefinitionNames()
-	for name := range names {
-		wfnames = append(wfnames, name)
-	}
-	return wfnames
+func GetWorkflowDefinitionNames() map[string]string {
+	return tukdbint.GetWorkflowDefinitionNames()
 }
 func GetWorkflowXDSMetaNames() []string {
 	return tukdbint.GetWorkflowXDSMetaNames()

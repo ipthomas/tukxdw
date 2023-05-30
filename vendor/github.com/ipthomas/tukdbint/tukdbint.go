@@ -44,7 +44,7 @@ type Statics struct {
 type Static struct {
 	Id      int64  `json:"id"`
 	Name    string `json:"name"`
-	Content string `json:"content"`
+	Content []byte `json:"content"`
 }
 type ServiceStates struct {
 	Action       string         `json:"action"`
@@ -76,6 +76,11 @@ type Subscription struct {
 	Pathway    string `json:"pathway"`
 	Topic      string `json:"topic"`
 	Expression string `json:"expression"`
+	Email      string `json:"email"`
+	NhsId      string `json:"nhsid"`
+	User       string `json:"user"`
+	Org        string `json:"org"`
+	Role       string `json:"role"`
 }
 type Subscriptions struct {
 	Action        string         `json:"action"`
@@ -228,6 +233,7 @@ func (e WorkflowsList) Swap(i, j int) {
 }
 
 var debugMode bool
+var cache = make(map[string]string)
 
 func SetDebugMode(debug bool) {
 	debugMode = debug
@@ -380,7 +386,7 @@ func (i *Subscriptions) newEvent() error {
 
 		for rows.Next() {
 			sub := Subscription{}
-			if err := rows.Scan(&sub.Id, &sub.Created, &sub.BrokerRef, &sub.Pathway, &sub.Topic, &sub.Expression); err != nil {
+			if err := rows.Scan(&sub.Id, &sub.Created, &sub.BrokerRef, &sub.Pathway, &sub.Topic, &sub.Expression, &sub.Email, &sub.NhsId, &sub.User, &sub.Org, &sub.Role); err != nil {
 				switch {
 				case err == sql.ErrNoRows:
 					return nil
@@ -585,7 +591,7 @@ func GetWorkflowDefinitionNames() map[string]string {
 	if err := xdws.newEvent(); err == nil {
 		for _, xdw := range xdws.XDW {
 			if xdw.Id > 0 {
-				names[xdw.Name] = ""
+				names[xdw.Name] = GetIDMapsMappedId(xdw.Name)
 			}
 		}
 	}
@@ -762,25 +768,31 @@ func (i *Templates) newEvent() error {
 	}
 	return err
 }
+func cachIDMaps() {
+	idmaps := IdMaps{Action: tukcnst.SELECT}
+	if err := idmaps.newEvent(); err != nil {
+		log.Println(err.Error())
+	}
+	for _, v := range idmaps.LidMap {
+		if v.Id > 0 {
+			cache[v.Lid] = v.Mid
+		}
+	}
+	log.Printf("Cached %v CodeMaps", len(cache))
+}
 func GetIDMaps() IdMaps {
 	idmaps := IdMaps{Action: tukcnst.SELECT}
-	idmap := IdMap{}
-	idmaps.LidMap = append(idmaps.LidMap, idmap)
 	if err := idmaps.newEvent(); err != nil {
 		log.Println(err.Error())
 	}
 	return idmaps
 }
 func GetIDMapsMappedId(localid string) string {
-	idmaps := IdMaps{Action: tukcnst.SELECT}
-	idmap := IdMap{Lid: localid}
-	idmaps.LidMap = append(idmaps.LidMap, idmap)
-	if err := idmaps.newEvent(); err != nil {
-		log.Println(err.Error())
-		return localid
+	if len(cache) == 0 {
+		cachIDMaps()
 	}
-	if idmaps.Cnt == 1 {
-		return idmaps.LidMap[1].Mid
+	if mid, ok := cache[localid]; ok {
+		return mid
 	}
 	return localid
 }
@@ -991,16 +1003,27 @@ func reflectStruct(i reflect.Value) map[string]interface{} {
 			tint64 := i.Field(f).Interface().(int64)
 			if tint64 > 0 {
 				params[strings.ToLower(structType.Field(f).Name)] = tint64
+				log.Printf("Reflected param %s : value %v", strings.ToLower(structType.Field(f).Name), tint64)
 			}
 		} else {
 			if strings.EqualFold(structType.Field(f).Name, "Version") || strings.EqualFold(structType.Field(f).Name, "TaskId") {
 				tint := i.Field(f).Interface().(int)
 				if tint != -1 {
 					params[strings.ToLower(structType.Field(f).Name)] = tint
+					log.Printf("Reflected param %s : value %v", strings.ToLower(structType.Field(f).Name), tint)
 				}
 			} else {
-				if i.Field(f).Interface() != nil && i.Field(f).Interface() != "" {
-					params[strings.ToLower(structType.Field(f).Name)] = i.Field(f).Interface()
+				if strings.EqualFold(structType.Field(f).Name, "content") {
+					if blob, ok := i.Field(f).Interface().([]byte); !ok {
+						if len(blob) > 1 {
+							params[strings.ToLower(structType.Field(f).Name)] = blob
+						}
+					}
+				} else {
+					if i.Field(f).Interface() != nil && i.Field(f).Interface() != "" {
+						params[strings.ToLower(structType.Field(f).Name)] = i.Field(f).Interface()
+						log.Printf("Reflected param %s : value %v", strings.ToLower(structType.Field(f).Name), i.Field(f).Interface())
+					}
 				}
 			}
 		}
