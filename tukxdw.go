@@ -17,7 +17,7 @@ import (
 	"github.com/ipthomas/tukutil"
 )
 
-var DebugMode = true
+var debugMode = false
 var Regional_OID = os.Getenv(tukcnst.ENV_REG_OID)
 
 type Interface interface {
@@ -302,6 +302,12 @@ func (i *Transaction) execute() error {
 		return i.ContentUpdater()
 	}
 	return nil
+}
+
+func SetDebugMode(debugmode bool) {
+	debugMode = debugmode
+	tukdsub.SetDebug(debugMode)
+
 }
 
 // IHE XDW Content Updater

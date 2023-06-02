@@ -16,8 +16,6 @@ import (
 	"github.com/ipthomas/tukutil"
 )
 
-var DebugMode = false
-
 // DSUBEvent implements NewEvent(i DSUB_Interface) error
 type DSUBEvent struct {
 	Action          string
@@ -172,6 +170,8 @@ type DSUB_Interface interface {
 	newEvent() error
 }
 
+var isdebugMode = false
+
 func New_Transaction(i DSUB_Interface) error {
 	return i.newEvent()
 }
@@ -193,6 +193,10 @@ func (i *DSUBEvent) newEvent() error {
 		i.processBrokerEventMessage()
 	}
 	return err
+}
+func SetDebug(isdebug bool) {
+	isdebugMode = isdebug
+	tukhttp.SetDebugMode(isdebugMode)
 }
 
 // creates a DSUBNotifyMessage from the EventMessage and populates a new TUKEvent with the DSUBNotifyMessage values
