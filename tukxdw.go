@@ -829,7 +829,7 @@ func (i *Transaction) SetXDWStates() error {
 	return err
 }
 func (i *Transaction) GetRegisteredWorkflows() map[string]string {
-	return tukdbint.GetWorkflowDefinitionNames()
+	return tukdbint.GetWorkflowDefinitionNames(i.User)
 }
 func GetActiveWorkflowNames() map[string]string {
 	return tukdbint.GetActiveWorkflowNames()
@@ -1146,7 +1146,7 @@ func (i *Transaction) GetWorkflowTimeRemaining() string {
 	return tukutil.PrettyPrintDuration(timeRemaining)
 }
 func getLocalId(mid string) string {
-	return tukdbint.GetIDMapsLocalId(mid)
+	return tukdbint.GetIDMapsLocalId("", mid)
 }
 func (i *Transaction) IsWorkflowEscalated() bool {
 	if i.WorkflowDefinition.ExpirationTime != "" {
@@ -1253,8 +1253,8 @@ func (i *Transaction) PersistXDWDefinition() error {
 	}
 	return err
 }
-func GetWorkflowDefinitionNames() map[string]string {
-	return tukdbint.GetWorkflowDefinitionNames()
+func GetWorkflowDefinitionNames(user string) map[string]string {
+	return tukdbint.GetWorkflowDefinitionNames(user)
 }
 func GetWorkflowXDSMetaNames() []string {
 	return tukdbint.GetWorkflowXDSMetaNames()
