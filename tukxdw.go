@@ -74,6 +74,21 @@ type Dashboard struct {
 }
 type XDSDocumentMeta struct {
 	ID                    string `json:"id"`
+	DateUtc               string `json:"dateUtc"`
+	BinaryId              string `json:"binaryId"`
+	Data                  string `json:"data"`
+	NhsId                 string `json:"nhsId"`
+	Pid                   string `json:"pid"`
+	PidOid                string `json:"pidOid"`
+	RegId                 string `json:"regId"`
+	RegOid                string `json:"regOid"`
+	PatientFamily         string `json:"patientFamily"`
+	PatientGiven          string `json:"patientGiven"`
+	Gender                string `json:"gender"`
+	Dob                   string `json:"dob"`
+	PractitionerFamily    string `json:"practitionerFamily"`
+	PractitionerGiven     string `json:"practitionerGiven"`
+	Organization          string `json:"organization"`
 	Repositoryuniqueid    string `json:"repositoryuniqueid"`
 	Registryoid           string `json:"registryoid"`
 	Languagecode          string `json:"languagecode"`
