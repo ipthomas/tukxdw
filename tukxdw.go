@@ -321,7 +321,6 @@ func (i *Transaction) execute() error {
 
 func SetDebugMode(debugmode bool) {
 	debugMode = debugmode
-	tukdsub.SetDebug(debugMode)
 
 }
 
