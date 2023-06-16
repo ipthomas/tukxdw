@@ -775,7 +775,7 @@ func (i *Transaction) SetXDWStates() error {
 			state.TargetMet = "TRUE"
 			state.InProgress = "TRUE"
 			state.Duration = i.GetWorkflowDuration()
-			if state.Status == tukcnst.TUK_STATUS_CLOSED {
+			if state.Status == tukcnst.STATUS_CLOSED {
 				state.TimeRemaining = "0"
 				i.ClosedWorkflows.Workflows = append(i.ClosedWorkflows.Workflows, wf)
 				i.ClosedWorkflows.Count = i.ClosedWorkflows.Count + 1
