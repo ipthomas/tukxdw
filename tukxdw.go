@@ -378,7 +378,7 @@ func (i *Transaction) ContentUpdater() error {
 			}
 			if newevent {
 				newEvents.Events = append(newEvents.Events, ev)
-				log.Printf("%s Task %s Event %v is a new Event. Adding Event to Workflow Updates", ev.Id)
+				log.Printf("Event %v is a new Event. Adding Event to Workflow Updates", ev.Id)
 			}
 		}
 		if len(newEvents.Events) > 0 {
@@ -551,7 +551,7 @@ func (i *Transaction) IsWorkflowCompleteBehaviorMet() (bool, string) {
 		var conditions []string
 		var completedConditions = 0
 		if cc.Completion.Condition != "" {
-			log.Printf("Workflow Completion Condition %v", c+1, cc.Completion.Condition)
+			log.Printf("Workflow Completion Condition %v %s", c+1, cc.Completion.Condition)
 			if strings.Contains(cc.Completion.Condition, " and ") {
 				conditions = strings.Split(cc.Completion.Condition, " and ")
 			} else {
