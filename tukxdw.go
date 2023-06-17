@@ -360,14 +360,17 @@ func (i *Transaction) ContentUpdater() error {
 				continue
 			}
 			cnt = cnt + 1
-			log.Printf("Processing Event %v ID %v Obtaining Workflow Task", cnt, ev.Id)
+			log.Printf("Processing Event ID %v", ev.Id)
 			newevent := true
+			log.Printf("Iterating through %s Workflow Tasks", i.WorkflowDocument.WorkflowDefinitionReference)
 			for _, task := range i.WorkflowDocument.TaskList.XDWTask {
+				log.Printf("Checking Task %s", task.TaskData.TaskDetails.Name)
 				if task.TaskData.TaskDetails.ID == tukutil.GetStringFromInt(ev.TaskId) {
-					log.Printf("Searching Task %s eevents for matching event ID %v", task.TaskData.TaskDetails.ID, ev.Id)
+					log.Printf("Event is for Task %s", task.TaskData.TaskDetails.Name)
+					log.Println("Iterating through Task Events")
 					for _, taskevent := range task.TaskEventHistory.TaskEvent {
 						if taskevent.ID == tukutil.GetStringFromInt(int(ev.Id)) {
-							log.Printf("Task %s Event %v is registered. Skipping Event", task.TaskData.TaskDetails.ID, ev.Id)
+							log.Printf("Event %v is registered. Skipping Event", task.TaskData.TaskDetails.Name)
 							newevent = false
 						}
 					}
@@ -375,7 +378,7 @@ func (i *Transaction) ContentUpdater() error {
 			}
 			if newevent {
 				newEvents.Events = append(newEvents.Events, ev)
-				log.Printf("Event %v is not registered. Including Event in Workflow Task events updates", ev.Id)
+				log.Printf("%s Task %s Event %v is a new Event. Adding Event to Workflow Updates", ev.Id)
 			}
 		}
 		if len(newEvents.Events) > 0 {
@@ -383,78 +386,79 @@ func (i *Transaction) ContentUpdater() error {
 			sort.Sort(eventsList(i.XDWEvents.Events))
 			i.XDWEvents.Events = newEvents.Events
 			i.XDWEvents.Count = len(newEvents.Events)
-			if err := i.UpdateWorkflowDocumentTasks(); err != nil {
+			if err := i.UpdateWorkflowDocument(); err != nil {
 				log.Println(err.Error())
 			}
 		}
 	}
 	return nil
 }
-func (i *Transaction) UpdateWorkflowDocumentTasks() error {
-	log.Printf("Updating %s Workflow Tasks with %v Events", i.WorkflowDocument.WorkflowDefinitionReference, len(i.XDWEvents.Events))
+func (i *Transaction) UpdateWorkflowDocument() error {
+	log.Printf("Updating %s Workflow with %v Events", i.WorkflowDocument.WorkflowDefinitionReference, len(i.XDWEvents.Events))
+	newSequenceNumber := false
 	for _, ev := range i.XDWEvents.Events {
+		log.Printf("Processing %s Workflow %s Event", ev.Pathway, ev.Expression)
 		for k, wfdoctask := range i.WorkflowDocument.TaskList.XDWTask {
-			log.Println("Checking Workflow Document Task " + wfdoctask.TaskData.TaskDetails.Name + " for matching Events")
+			log.Printf("Checking %s Workflow %s Task Inputs and Outputs", ev.Pathway, wfdoctask.TaskData.TaskDetails.Name)
 			for inp, input := range wfdoctask.TaskData.Input {
 				if ev.Expression == input.Part.Name {
-					log.Println("Matched workflow document task " + wfdoctask.TaskData.TaskDetails.ID + " Input Part : " + input.Part.Name + " with Event Expression : " + ev.Expression + " Status : " + wfdoctask.TaskData.TaskDetails.Status)
-					if !i.isInputRegistered(ev) {
-						log.Printf("Updating XDW with Event ID %v for Task ID %s", ev.Id, wfdoctask.TaskData.TaskDetails.ID)
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedTime = ev.Creationtime
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedBy = ev.User + " " + ev.Org + " " + ev.Role
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.HomeCommunityId = Regional_OID
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.LastModifiedTime = ev.Creationtime
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActualOwner = ev.User + " " + ev.Org + " " + ev.Role
-						if i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime == "" {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime = ev.Creationtime
-							log.Printf("Set Task %s Activation Time %s", wfdoctask.TaskData.TaskDetails.ID, i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime)
-						}
-						if wfdoctask.TaskData.Input[inp].Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
-						} else {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
-						}
-						i.newTaskEvent(ev)
-						wfseqnum, _ := strconv.ParseInt(i.WorkflowDocument.WorkflowDocumentSequenceNumber, 0, 0)
-						wfseqnum = wfseqnum + 1
-						i.WorkflowDocument.WorkflowDocumentSequenceNumber = strconv.Itoa(int(wfseqnum))
-						i.newDocEvent(ev)
+					log.Printf("Matched Task %v Input %s", wfdoctask.TaskData.TaskDetails.ID, input.Part.Name)
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedTime = ev.Creationtime
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.AttachedBy = ev.User + " " + ev.Org + " " + ev.Role
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.HomeCommunityId = Regional_OID
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.LastModifiedTime = ev.Creationtime
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActualOwner = ev.User + " " + ev.Org + " " + ev.Role
+					if i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime == "" {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime = ev.Creationtime
+						log.Printf("Set Task %s Activation Time %s", wfdoctask.TaskData.TaskDetails.ID, i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime)
 					}
+					if wfdoctask.TaskData.Input[inp].Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
+					} else {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Input[inp].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
+					}
+					i.newTaskEvent(ev)
+					i.newDocEvent(ev)
+					newSequenceNumber = true
 				}
 			}
 			for oup, output := range i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output {
 				if ev.Expression == output.Part.Name {
 					log.Println("Matched workflow document task " + wfdoctask.TaskData.TaskDetails.ID + " Output Part : " + output.Part.Name + " with Event Expression : " + ev.Expression + " Status : " + wfdoctask.TaskData.TaskDetails.Status)
-					if !i.isOutputRegistered(ev) {
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.LastModifiedTime = ev.Creationtime
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.AttachedTime = ev.Creationtime
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.AttachedBy = ev.User + " " + ev.Org + " " + ev.Role
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActualOwner = ev.User + " " + ev.Org + " " + ev.Role
-						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
-						if i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime == "" {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime = ev.Creationtime
-						}
-						if strings.HasSuffix(wfdoctask.TaskData.Output[oup].Part.AttachmentInfo.AccessType, tukcnst.XDS_REGISTERED) {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
-						} else {
-							i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
-						}
-						i.newTaskEvent(ev)
-						wfseqnum, _ := strconv.ParseInt(i.WorkflowDocument.WorkflowDocumentSequenceNumber, 0, 0)
-						wfseqnum = wfseqnum + 1
-						i.WorkflowDocument.WorkflowDocumentSequenceNumber = strconv.Itoa(int(wfseqnum))
-						i.newDocEvent(ev)
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.LastModifiedTime = ev.Creationtime
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.AttachedTime = ev.Creationtime
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.AttachedBy = ev.User + " " + ev.Org + " " + ev.Role
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActualOwner = ev.User + " " + ev.Org + " " + ev.Role
+					i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
+					if i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime == "" {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.ActivationTime = ev.Creationtime
 					}
+					if strings.HasSuffix(wfdoctask.TaskData.Output[oup].Part.AttachmentInfo.AccessType, tukcnst.XDS_REGISTERED) {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = ev.XdsDocEntryUid
+					} else {
+						i.WorkflowDocument.TaskList.XDWTask[k].TaskData.Output[oup].Part.AttachmentInfo.Identifier = tukutil.GetStringFromInt(int(ev.Id))
+					}
+					i.newTaskEvent(ev)
+					i.newDocEvent(ev)
+					newSequenceNumber = true
 				}
 			}
 		}
 	}
-
+	if newSequenceNumber {
+		wfseqnum, _ := strconv.ParseInt(i.WorkflowDocument.WorkflowDocumentSequenceNumber, 0, 0)
+		wfseqnum = wfseqnum + 1
+		i.WorkflowDocument.WorkflowDocumentSequenceNumber = strconv.Itoa(int(wfseqnum))
+	}
 	for k, task := range i.WorkflowDocument.TaskList.XDWTask {
-		i.Task_ID = tukutil.GetIntFromString(task.TaskData.TaskDetails.ID) - 1
+		i.Task_ID = tukutil.GetIntFromString(task.TaskData.TaskDetails.ID)
 		if i.IsTaskCompleteBehaviorMet() {
 			i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.COMPLETE
+		} else {
+			if i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status == tukcnst.COMPLETE {
+				i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.IN_PROGRESS
+			}
 		}
 	}
 
@@ -467,53 +471,161 @@ func (i *Transaction) UpdateWorkflowDocumentTasks() error {
 		docevent.EventTime = tukutil.Time_Now()
 		docevent.EventType = tukcnst.XDW_DOCEVENTTYPE_COMPLETED_WORKFLOW
 		docevent.PreviousStatus = i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent[len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)-1].ActualStatus
-		docevent.ActualStatus = tukcnst.COMPLETE
+		docevent.ActualStatus = tukcnst.CLOSED
 		i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent = append(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent, docevent)
 		for k := range i.WorkflowDocument.TaskList.XDWTask {
 			i.WorkflowDocument.TaskList.XDWTask[k].TaskData.TaskDetails.Status = tukcnst.COMPLETE
 		}
-		log.Println("Closed Workflow. Total Workflow Document Events " + strconv.Itoa(len(i.WorkflowDocument.WorkflowStatusHistory.DocumentEvent)))
+		log.Println("Closed Workflow")
 	}
 	return i.updateWorkflow()
 }
-func (i *Transaction) isInputRegistered(ev tukdbint.Event) bool {
-	log.Printf("Checking if Input Event for Task %s is registered", i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Description)
-	for _, input := range i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Input {
-		if ev.Expression == input.Part.Name {
-			if input.Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
-				if input.Part.AttachmentInfo.Identifier == ev.XdsDocEntryUid {
-					log.Println("Event is registered. Skipping Event ")
-					return true
+func (i *Transaction) IsTaskCompleteBehaviorMet() bool {
+	for _, task := range i.WorkflowDefinition.Tasks {
+		if task.ID == tukutil.GetStringFromInt(i.Task_ID) {
+			log.Printf("Checking if Task %v is complete", i.Task_ID)
+			var conditions []string
+			var completedConditions = 0
+			for _, cond := range task.CompletionBehavior {
+				log.Printf("Task %v Completion Condition is %s", i.Task_ID, cond)
+				if cond.Completion.Condition != "" {
+					if strings.Contains(cond.Completion.Condition, " and ") {
+						conditions = strings.Split(cond.Completion.Condition, " and ")
+					} else {
+						conditions = append(conditions, cond.Completion.Condition)
+					}
+					log.Printf("Checkiing Task %v %v completion conditions", i.Task_ID, len(conditions))
+					for _, condition := range conditions {
+						endMethodInd := strings.Index(condition, "(")
+						if endMethodInd > 0 {
+							method := condition[0:endMethodInd]
+							endParamInd := strings.Index(condition, ")")
+							if endParamInd < endMethodInd+2 {
+								log.Println("Invalid Condition. End bracket index invalid")
+								continue
+							}
+							param := condition[endMethodInd+1 : endParamInd]
+							log.Printf("Completion condition is %s", method)
+							switch method {
+							case "output":
+								for _, op := range i.WorkflowDocument.TaskList.XDWTask[i.Task_ID].TaskData.Output {
+									if op.Part.AttachmentInfo.AttachedTime != "" && op.Part.AttachmentInfo.Name == param {
+										completedConditions = completedConditions + 1
+									}
+								}
+							case "input":
+								for _, in := range i.WorkflowDocument.TaskList.XDWTask[i.Task_ID].TaskData.Input {
+									if in.Part.AttachmentInfo.AttachedTime != "" && in.Part.AttachmentInfo.Name == param {
+										completedConditions = completedConditions + 1
+									}
+								}
+							case "task":
+								for _, task := range i.WorkflowDocument.TaskList.XDWTask {
+									if task.TaskData.TaskDetails.ID == param {
+										if task.TaskData.TaskDetails.Status == tukcnst.COMPLETE {
+											completedConditions = completedConditions + 1
+										}
+									}
+								}
+							case "latest":
+								if i.getLatestTaskEvent() == param {
+									completedConditions = completedConditions + 1
+								}
+							}
+						}
+					}
 				}
-			} else {
-				if input.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
-					log.Println("Event is registered. Skipping Event ")
-					return true
-				}
+			}
+			if len(conditions) == completedConditions {
+				log.Printf("Task %v is complete", i.Task_ID)
+				return true
 			}
 		}
 	}
+	log.Printf("Task %v is not complete", i.Task_ID)
 	return false
 }
-func (i *Transaction) isOutputRegistered(ev tukdbint.Event) bool {
-	log.Printf("Checking if Ouput Event for Task %s is registered", i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Description)
-	for _, output := range i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Output {
-		if ev.Expression == output.Part.Name {
-			if output.Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
-				if output.Part.AttachmentInfo.Identifier == ev.XdsDocEntryUid {
-					log.Println("Event is registered. Skipping Event ")
-					return true
-				}
+func (i *Transaction) IsWorkflowCompleteBehaviorMet() (bool, string) {
+	var completionTask string
+	for c, cc := range i.WorkflowDefinition.CompletionBehavior {
+		var conditions []string
+		var completedConditions = 0
+		if cc.Completion.Condition != "" {
+			log.Printf("Workflow Completion Condition %v", c+1, cc.Completion.Condition)
+			if strings.Contains(cc.Completion.Condition, " and ") {
+				conditions = strings.Split(cc.Completion.Condition, " and ")
 			} else {
-				if output.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
-					log.Println("Event is registered. Skipping Event ")
-					return true
+				conditions = append(conditions, cc.Completion.Condition)
+			}
+			for _, condition := range conditions {
+				endMethodInd := strings.Index(condition, "(")
+				if endMethodInd > 0 {
+					method := cc.Completion.Condition[0:endMethodInd]
+					if method != "task" {
+						log.Println(method + " is an Invalid Workflow Completion Behaviour Condition method. Ignoring Condition")
+						continue
+					}
+					endParamInd := strings.Index(cc.Completion.Condition, ")")
+					param := cc.Completion.Condition[endMethodInd+1 : endParamInd]
+					for _, task := range i.WorkflowDocument.TaskList.XDWTask {
+						if task.TaskData.TaskDetails.ID == param {
+							if task.TaskData.TaskDetails.Status == tukcnst.COMPLETE {
+								completedConditions = completedConditions + 1
+								completionTask = param
+							}
+						}
+					}
 				}
+			}
+			if len(conditions) == completedConditions {
+				log.Printf("%s Workflow for NHS ID %s is complete", i.Pathway, i.NHS_ID)
+				return true, completionTask
 			}
 		}
 	}
-	return false
+	log.Printf("%s Workflow for NHS ID %s is not complete", i.Pathway, i.NHS_ID)
+	return false, ""
 }
+
+//	func (i *Transaction) isInputRegistered(ev tukdbint.Event) bool {
+//		log.Printf("Checking if Input Event for Task %s is registered", i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Description)
+//		for _, input := range i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Input {
+//			if ev.Expression == input.Part.Name {
+//				if input.Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
+//					if input.Part.AttachmentInfo.Identifier == ev.XdsDocEntryUid {
+//						log.Println("Event is registered. Skipping Event ")
+//						return true
+//					}
+//				} else {
+//					if input.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
+//						log.Println("Event is registered. Skipping Event ")
+//						return true
+//					}
+//				}
+//			}
+//		}
+//		return false
+//	}
+//
+//	func (i *Transaction) isOutputRegistered(ev tukdbint.Event) bool {
+//		log.Printf("Checking if Ouput Event for Task %s is registered", i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Description)
+//		for _, output := range i.WorkflowDocument.TaskList.XDWTask[ev.TaskId-1].TaskData.Output {
+//			if ev.Expression == output.Part.Name {
+//				if output.Part.AttachmentInfo.AccessType == tukcnst.XDS_REGISTERED {
+//					if output.Part.AttachmentInfo.Identifier == ev.XdsDocEntryUid {
+//						log.Println("Event is registered. Skipping Event ")
+//						return true
+//					}
+//				} else {
+//					if output.Part.AttachmentInfo.Identifier == tukutil.GetStringFromInt(int(ev.Id)) {
+//						log.Println("Event is registered. Skipping Event ")
+//						return true
+//					}
+//				}
+//			}
+//		}
+//		return false
+//	}
 func (i *Transaction) newTaskEvent(ev tukdbint.Event) {
 	nte := TaskEvent{
 		ID:         tukutil.GetStringFromInt(int(ev.Id)),
@@ -956,47 +1068,6 @@ func (i *Transaction) IsWorkflowOverdue() bool {
 func (i *Transaction) GetWorkflowCompleteByDate() time.Time {
 	return tukutil.OHT_FutureDate(tukutil.GetTimeFromString(i.WorkflowDocument.EffectiveTime.Value), i.WorkflowDefinition.CompleteByTime)
 }
-func (i *Transaction) IsWorkflowCompleteBehaviorMet() (bool, string) {
-	var conditions []string
-	var completedConditions = 0
-	var completionTask string
-	for _, cc := range i.WorkflowDefinition.CompletionBehavior {
-		if cc.Completion.Condition != "" {
-			log.Println("Parsing Workflow Completion Condition " + cc.Completion.Condition)
-			if strings.Contains(cc.Completion.Condition, " and ") {
-				conditions = strings.Split(cc.Completion.Condition, " and ")
-			} else {
-				conditions = append(conditions, cc.Completion.Condition)
-			}
-			for _, condition := range conditions {
-				endMethodInd := strings.Index(condition, "(")
-				if endMethodInd > 0 {
-					method := cc.Completion.Condition[0:endMethodInd]
-					if method != "task" {
-						log.Println(method + " is an Invalid Workflow Completion Behaviour Condition method. Ignoring Condition")
-						continue
-					}
-					endParamInd := strings.Index(cc.Completion.Condition, ")")
-					param := cc.Completion.Condition[endMethodInd+1 : endParamInd]
-					for _, task := range i.WorkflowDocument.TaskList.XDWTask {
-						if task.TaskData.TaskDetails.ID == param {
-							if task.TaskData.TaskDetails.Status == tukcnst.COMPLETE {
-								completedConditions = completedConditions + 1
-								completionTask = param
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	if len(conditions) == completedConditions {
-		log.Printf("%s Workflow for NHS ID %s is complete", i.Pathway, i.NHS_ID)
-		return true, completionTask
-	}
-	log.Printf("%s Workflow for NHS ID %s is not complete", i.Pathway, i.NHS_ID)
-	return false, ""
-}
 func IsLatestTaskEvent(i WorkflowDocument, task int, taskEventName string) bool {
 	var lastoutputtime = tukutil.GetTimeFromString(i.EffectiveTime.Value)
 	var lastinputtime = lastoutputtime
@@ -1029,67 +1100,6 @@ func IsLatestTaskEvent(i WorkflowDocument, task int, taskEventName string) bool 
 			return true
 		}
 	}
-	return false
-}
-func (i *Transaction) IsTaskCompleteBehaviorMet() bool {
-	log.Printf("Checking if Task %v is complete", i.Task_ID)
-	var conditions []string
-	var completedConditions = 0
-	for _, cond := range i.WorkflowDefinition.Tasks[i.Task_ID].CompletionBehavior {
-		log.Printf("Task %v Completion Condition is %s", i.Task_ID, cond)
-		if cond.Completion.Condition != "" {
-			if strings.Contains(cond.Completion.Condition, " and ") {
-				conditions = strings.Split(cond.Completion.Condition, " and ")
-			} else {
-				conditions = append(conditions, cond.Completion.Condition)
-			}
-			log.Printf("Checkiing Task %v %v completion conditions", i.Task_ID, len(conditions))
-			for _, condition := range conditions {
-				endMethodInd := strings.Index(condition, "(")
-				if endMethodInd > 0 {
-					method := condition[0:endMethodInd]
-					endParamInd := strings.Index(condition, ")")
-					if endParamInd < endMethodInd+2 {
-						log.Println("Invalid Condition. End bracket index invalid")
-						continue
-					}
-					param := condition[endMethodInd+1 : endParamInd]
-					log.Printf("Completion condition is %s", method)
-					switch method {
-					case "output":
-						for _, op := range i.WorkflowDocument.TaskList.XDWTask[i.Task_ID].TaskData.Output {
-							if op.Part.AttachmentInfo.AttachedTime != "" && op.Part.AttachmentInfo.Name == param {
-								completedConditions = completedConditions + 1
-							}
-						}
-					case "input":
-						for _, in := range i.WorkflowDocument.TaskList.XDWTask[i.Task_ID].TaskData.Input {
-							if in.Part.AttachmentInfo.AttachedTime != "" && in.Part.AttachmentInfo.Name == param {
-								completedConditions = completedConditions + 1
-							}
-						}
-					case "task":
-						for _, task := range i.WorkflowDocument.TaskList.XDWTask {
-							if task.TaskData.TaskDetails.ID == param {
-								if task.TaskData.TaskDetails.Status == tukcnst.COMPLETE {
-									completedConditions = completedConditions + 1
-								}
-							}
-						}
-					case "latest":
-						if i.getLatestTaskEvent() == param {
-							completedConditions = completedConditions + 1
-						}
-					}
-				}
-			}
-		}
-	}
-	if len(conditions) == completedConditions {
-		log.Printf("Task %v is complete", i.Task_ID)
-		return true
-	}
-	log.Printf("Task %v is not complete", i.Task_ID)
 	return false
 }
 func (i *Transaction) getLatestTaskEvent() string {
